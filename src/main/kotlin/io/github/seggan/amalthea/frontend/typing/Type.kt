@@ -1,6 +1,6 @@
 package io.github.seggan.amalthea.frontend.typing
 
-interface Type {
+sealed interface Type {
 
     val typeName: String
 
@@ -8,25 +8,28 @@ interface Type {
         return this == other || other == Any
     }
 
-    enum class Primitive(override val typeName: String) : Type {
-        BYTE("Byte"),
-        SHORT("Short"),
-        INT("Int"),
-        LONG("Long"),
-        FLOAT("Float"),
+    enum class Primitive(override val typeName: String, private vararg val assginable: Type) : Type {
         DOUBLE("Double"),
+        FLOAT("Float", DOUBLE),
+        LONG("Long", DOUBLE),
+        INT("Int", LONG, FLOAT),
+        SHORT("Short", INT),
+        BYTE("Byte", SHORT),
         BOOLEAN("Boolean"),
         CHAR("Char"),
         STRING("String"),
         ;
 
-        companion object {
-            val typeNames = entries.map { it.typeName }.toSet()
+        override fun isAssignableTo(other: Type): Boolean {
+            return super.isAssignableTo(other) || assginable.any { it.isAssignableTo(other) }
         }
+
+        override fun toString(): String = typeName
     }
 
     data object Unit : Type {
         override val typeName = "Unit"
+        override fun toString(): String = typeName
     }
 
     data object Nothing : Type {
@@ -35,10 +38,13 @@ interface Type {
         override fun isAssignableTo(other: Type): Boolean {
             return true
         }
+
+        override fun toString(): String = typeName
     }
 
     data object Any : Type {
         override val typeName = "Any"
+        override fun toString(): String = typeName
     }
 
     data class Function(val args: List<Type>, val returnType: Type) : Type {
@@ -52,5 +58,7 @@ interface Type {
             }
             return returnType.isAssignableTo(other.returnType)
         }
+
+        override fun toString(): String = typeName
     }
 }

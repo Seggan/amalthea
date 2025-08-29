@@ -25,7 +25,7 @@ sealed interface Key<V : Any> {
         val context: String
     ) : Key<Pair<Signature, AstNode.FunctionDeclaration<Unit>>>
 
-    data class ResolveFunction(val signature: Signature, val context: String) : Key<Signature>
+    data class ResolveFunction(val name: String, val args: List<Type>, val context: String) : Key<Signature>
 
     data class TypeCheck(
         val name: String,

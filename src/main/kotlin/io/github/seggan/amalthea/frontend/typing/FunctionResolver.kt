@@ -12,19 +12,20 @@ class FunctionResolver(private val queryEngine: QueryEngine) : Queryable<Key.Res
 
     override fun query(key: Key.ResolveFunction): Signature {
         val untypedAst = queryEngine[Key.UntypedAst(key.context)]
-        val signature = key.signature
-        for (function in untypedAst.declarations) {
-            if (function.name == signature.name && function.parameters.size == signature.type.args.size) {
+        functionLoop@ for (function in untypedAst.declarations) {
+            if (function.name == key.name && function.parameters.size == key.args.size) {
                 val paramTypes = function.parameters.map { (_, type) ->
                     queryEngine[ResolveType(type.name, function.span.source.name)]
                 }
-                val returnType = queryEngine[ResolveType(function.returnType.name, function.span.source.name)]
-                val functionType = Function(paramTypes, returnType)
-                if (signature.type.isAssignableTo(functionType)) {
-                    return Signature(function.name, functionType)
+                for (i in paramTypes.indices) {
+                    if (!key.args[i].isAssignableTo(paramTypes[i])) {
+                        continue@functionLoop
+                    }
                 }
+                val returnType = queryEngine[ResolveType(function.returnType.name, function.span.source.name)]
+                return Signature(function.name, Function(paramTypes, returnType))
             }
         }
-        throw AmaltheaException("Could find function matching $signature", mutableListOf())
+        throw AmaltheaException("Could find function matching '${key.name}(${key.args.joinToString(", ")})'", mutableListOf())
     }
 }

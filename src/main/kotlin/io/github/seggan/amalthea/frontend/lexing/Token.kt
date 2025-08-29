@@ -84,8 +84,6 @@ data class Token(val type: Type, val text: String, val span: Span) {
         ARROW("'->'", "->"),
         TILDE("'~'", "~"),
 
-        IN("in", "in"),
-        NOT_IN("!in", "!in"),
         NULL("null", "null"),
         TRUE("true", "true"),
         FALSE("false", "false"),

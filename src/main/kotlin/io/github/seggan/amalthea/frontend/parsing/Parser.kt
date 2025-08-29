@@ -6,7 +6,6 @@ import io.github.seggan.amalthea.frontend.lexing.Token.Type.*
 import io.github.seggan.amalthea.query.Key
 import io.github.seggan.amalthea.query.QueryEngine
 import io.github.seggan.amalthea.query.Queryable
-import java.math.BigDecimal
 
 class Parser private constructor(private val tokens: List<Token>) {
 
@@ -83,54 +82,49 @@ class Parser private constructor(private val tokens: List<Token>) {
 
     private fun parseAndOr() = parseBinOp(
         ::parseEquality,
-        mapOf(DOUBLE_AMPERSAND to BinOp.AND, DOUBLE_PIPE to BinOp.OR)
+        mapOf(DOUBLE_AMPERSAND to BinOp.And, DOUBLE_PIPE to BinOp.Or)
     )
 
     private fun parseEquality() = parseBinOp(
         ::parseComparison,
         mapOf(
-            DOUBLE_EQUAL to BinOp.EQ,
-            NOT_DOUBLE_EQUAL to BinOp.NOT_EQ,
-            TRIPLE_EQUAL to BinOp.IS,
-            NOT_TRIPLE_EQUAL to BinOp.NOT_IS
+            DOUBLE_EQUAL to BinOp.Eq,
+            NOT_DOUBLE_EQUAL to BinOp.NotEq,
+            TRIPLE_EQUAL to BinOp.Is,
+            NOT_TRIPLE_EQUAL to BinOp.NotIs
         )
     )
 
     private fun parseComparison() = parseBinOp(
-        ::parseIn,
+        ::parseBitOr,
         mapOf(
-            LESS to BinOp.LT,
-            LESS_EQUAL to BinOp.LT_EQ,
-            GREATER to BinOp.GT,
-            GREATER_EQUAL to BinOp.GT_EQ
+            LESS to BinOp.Lt,
+            LESS_EQUAL to BinOp.LtEq,
+            GREATER to BinOp.Gt,
+            GREATER_EQUAL to BinOp.GtEq
         )
     )
 
-    private fun parseIn() = parseBinOp(
-        ::parseBitOr,
-        mapOf(IN to BinOp.IN, NOT_IN to BinOp.NOT_IN)
-    )
-
-    private fun parseBitOr() = parseBinOp(::parseBitXor, mapOf(PIPE to BinOp.BIT_OR))
-    private fun parseBitXor() = parseBinOp(::parseBitAnd, mapOf(CARET to BinOp.BIT_XOR))
-    private fun parseBitAnd() = parseBinOp(::parseShift, mapOf(AMPERSAND to BinOp.BIT_AND))
+    private fun parseBitOr() = parseBinOp(::parseBitXor, mapOf(PIPE to BinOp.BitOr))
+    private fun parseBitXor() = parseBinOp(::parseBitAnd, mapOf(CARET to BinOp.BitXor))
+    private fun parseBitAnd() = parseBinOp(::parseShift, mapOf(AMPERSAND to BinOp.BitAnd))
     private fun parseShift() = parseBinOp(
         ::parseAddSub,
         mapOf(
-            DOUBLE_LESS to BinOp.SHIFT_LEFT,
-            DOUBLE_GREATER to BinOp.SHIFT_RIGHT,
-            TRIPLE_GREATER to BinOp.USHIFT_RIGHT
+            DOUBLE_LESS to BinOp.ShiftLeft,
+            DOUBLE_GREATER to BinOp.ShiftRight,
+            TRIPLE_GREATER to BinOp.UShiftRight
         )
     )
 
     private fun parseAddSub() = parseBinOp(
         ::parseMulDiv,
-        mapOf(PLUS to BinOp.ADD, MINUS to BinOp.SUB)
+        mapOf(PLUS to BinOp.Add, MINUS to BinOp.Sub)
     )
 
     private fun parseMulDiv() = parseBinOp(
         ::parseUnary,
-        mapOf(STAR to BinOp.MUL, SLASH to BinOp.DIV, PERCENT to BinOp.MOD)
+        mapOf(STAR to BinOp.Mul, SLASH to BinOp.Div, PERCENT to BinOp.Mod)
     )
 
     private inline fun parseBinOp(
@@ -172,9 +166,13 @@ class Parser private constructor(private val tokens: List<Token>) {
         ::parseFunctionCall
     )
 
-    private fun parseNumber(): AstNode.NumberLiteral<Unit> {
+    private fun parseNumber(): AstNode.Expression<Unit> {
         val token = consume(NUMBER)
-        return AstNode.NumberLiteral(BigDecimal(token.text), token.span, Unit)
+        return if ('.' in token.text) {
+            AstNode.FloatLiteral(token.text.toDouble(), token.span, Unit)
+        } else {
+            AstNode.IntLiteral(token.text.toLong(), token.span, Unit)
+        }
     }
 
     private fun parseString(): AstNode.StringLiteral<Unit> {

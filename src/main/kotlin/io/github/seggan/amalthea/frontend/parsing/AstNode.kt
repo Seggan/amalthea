@@ -1,9 +1,9 @@
 package io.github.seggan.amalthea.frontend.parsing
 
+import io.github.seggan.amalthea.frontend.AmaltheaException
 import io.github.seggan.amalthea.frontend.BinOp
 import io.github.seggan.amalthea.frontend.Span
 import io.github.seggan.amalthea.frontend.UnOp
-import java.math.BigDecimal
 
 sealed interface AstNode<out E> {
     val span: Span
@@ -73,9 +73,17 @@ sealed interface AstNode<out E> {
         }
     }
 
-    data class NumberLiteral<E>(val value: BigDecimal, override val span: Span, override val extra: E) : Expression<E> {
+    data class IntLiteral<E>(val value: Long, override val span: Span, override val extra: E) : Expression<E> {
         override fun toString() = buildString {
-            appendLine("NumberLiteral:")
+            appendLine("IntLiteral:")
+            appendIndented("Value: $value")
+            appendIndented("Extra: $extra")
+        }
+    }
+
+    data class FloatLiteral<E>(val value: Double, override val span: Span, override val extra: E) : Expression<E> {
+        override fun toString() = buildString {
+            appendLine("FloatLiteral:")
             appendIndented("Value: $value")
             appendIndented("Extra: $extra")
         }
@@ -141,5 +149,14 @@ private fun StringBuilder.appendIndented(obj: Any, indent: Int = 2) {
     val indent = " ".repeat(indent)
     for (line in obj.toString().trim().lines()) {
         append(indent).appendLine(line)
+    }
+}
+
+inline fun <T> inContext(node: AstNode<*>, block: () -> T): T {
+    try {
+        return block()
+    } catch (e: AmaltheaException) {
+        e.addStackFrame(node.span)
+        throw e
     }
 }

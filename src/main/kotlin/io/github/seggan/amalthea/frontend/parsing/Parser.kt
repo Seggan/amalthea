@@ -20,10 +20,15 @@ class Parser private constructor(private val tokens: List<Token>) {
         val functions = mutableListOf<AstNode.FunctionDeclaration<Unit>>()
         while (index < tokens.size) {
             try {
-                functions.add(parseFunction())
+                try {
+                    functions.add(parseFunction())
+                } catch (e: ParseException) {
+                    errors.add(e)
+                    skipUntil(FUN)
+                }
             } catch (e: ParseException) {
                 errors.add(e)
-                skipUntil(FUN)
+                index++
             }
         }
         val span = if (tokens.isEmpty()) {
@@ -65,13 +70,13 @@ class Parser private constructor(private val tokens: List<Token>) {
                 errors.add(e)
                 skipUntil(SEMICOLON)
             }
-            consume(SEMICOLON)
         }
         return AstNode.Block(statements, start + lastSpan, Unit)
     }
 
     private fun parseStatement(): AstNode.Statement<Unit> = oneOf(
-        ::parseExpression
+        { parseExpression().also { consume(SEMICOLON) } },
+        ::parseBlock
     )
 
     private fun parseExpression() = parseAndOr()
@@ -231,6 +236,8 @@ class Parser private constructor(private val tokens: List<Token>) {
         if (token.type in types) {
             index++
             return token
+        } else if (token.type == ERROR) {
+            throw ParseException("Unknown character '${token.text}'", token.span)
         }
         return null
     }
@@ -242,16 +249,10 @@ class Parser private constructor(private val tokens: List<Token>) {
         }
         if (!isEof) {
             val token = tokens[index]
-            throw ParseException("Got ${token.type}, expected ${types.joinToString(" or ")}", token.span)
+            throw UnexpectedTokenException(types.toList(), "'${token.text}'", token.span)
         } else {
             val lastToken = tokens.last()
-            throw ParseException("Unexpected end of file, expected ${types.joinToString(" or ")}", lastToken.span)
-        }
-    }
-
-    @Suppress("ControlFlowWithEmptyBody")
-    private fun skip(vararg types: Token.Type) {
-        while (tryConsume(*types) != null) {
+            throw UnexpectedTokenException(types.toList(), "end of file", lastToken.span)
         }
     }
 
@@ -259,23 +260,32 @@ class Parser private constructor(private val tokens: List<Token>) {
         while (!isEof && tokens[index].type !in types) {
             index++
         }
-        if (inclusive && !isEof) {
+        if (isEof) {
+            throw UnexpectedTokenException(types.toList(), "end of file", tokens.last().span)
+        }
+        if (inclusive) {
             index++
         }
     }
 
     private fun <T : AstNode<Unit>> oneOf(vararg parsers: () -> T): T {
-        val errors = mutableListOf<Pair<ParseException, Int>>()
-        val index = this.index
+        val errors = mutableListOf<Pair<UnexpectedTokenException, Int>>()
+        val originalIndex = index
         for (parser in parsers) {
             try {
                 return parser()
-            } catch (e: ParseException) {
-                errors.add(e to this.index)
-                this.index = index
+            } catch (e: UnexpectedTokenException) {
+                errors.add(e to index)
+                index = originalIndex
             }
         }
-        throw errors.maxBy { it.second }.first
+        val max = errors.maxOf { it.second }
+        val maxErrors = errors.filter { it.second == max }.map { it.first }
+        throw UnexpectedTokenException(
+            maxErrors.flatMap { it.expected }.distinct(),
+            if (isEof) "end of file" else "'${tokens[index].text}'",
+            if (isEof) tokens.last().span else tokens[index].span
+        )
     }
 
     private inline fun <T> parseArgList(closer: Token.Type, subParser: () -> T): List<T> {

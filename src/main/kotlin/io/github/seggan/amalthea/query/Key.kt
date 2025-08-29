@@ -1,12 +1,10 @@
 package io.github.seggan.amalthea.query
 
-import kotlin.reflect.KClass
+import io.github.seggan.amalthea.frontend.lexing.Token
 
 sealed interface Key<V : Any> {
 
-    val type: KClass<V>
+    data class CodeSource(val source: String) : Key<io.github.seggan.amalthea.frontend.CodeSource>
 
-    data class CodeSource(val source: String) : Key<io.github.seggan.amalthea.frontend.CodeSource> {
-        override val type = io.github.seggan.amalthea.frontend.CodeSource::class
-    }
+    data class Tokens(val source: String) : Key<List<Token>>
 }

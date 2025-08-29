@@ -5,7 +5,6 @@ import kotlin.reflect.KClass
 
 class QueryEngine(private val sources: List<CodeSource>) : Queryable<Key.CodeSource, CodeSource> {
 
-    override val queryEngine = this
     override val keyType = Key.CodeSource::class
 
     override fun query(key: Key.CodeSource): CodeSource {
@@ -25,7 +24,7 @@ class QueryEngine(private val sources: List<CodeSource>) : Queryable<Key.CodeSou
     operator fun <V : Any> get(key: Key<V>): V {
         @Suppress("UNCHECKED_CAST")
         return queryCache.getOrPut(key) {
-            val queryable = queryables[key.type] ?: error("No queryable registered for key type ${key.type}")
+            val queryable = queryables[key::class] ?: error("No queryable registered for key ${key::class}")
             (queryable as Queryable<Key<V>, V>).query(key)
         } as V
     }

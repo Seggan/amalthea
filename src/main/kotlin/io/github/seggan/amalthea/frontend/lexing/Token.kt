@@ -4,10 +4,10 @@ import io.github.seggan.amalthea.frontend.Span
 import org.intellij.lang.annotations.Language
 
 data class Token(val type: Type, val text: String, val span: Span) {
-    enum class Type(@Language("RegExp") pattern: String? = null, val ignore: Boolean = false) {
-        WHITESPACE("[\\s\\n]+", ignore = true),
-        LINE_COMMENT("//.*\\n", ignore = true),
-        BLOCK_COMMENT(ignore = true) {
+    enum class Type(val humanName: String, @Language("RegExp") pattern: String? = null, val ignore: Boolean = false) {
+        WHITESPACE("whitespace", "[\\s\\n]+", ignore = true),
+        LINE_COMMENT("a line comment", "//.*\\n", ignore = true),
+        BLOCK_COMMENT("a block comment", ignore = true) {
             override fun getLength(input: CharSequence): Int {
                 if (!input.startsWith("/*")) return 0
                 var index = 2
@@ -27,8 +27,8 @@ data class Token(val type: Type, val text: String, val span: Span) {
                 return 0
             }
         },
-        NUMBER("-?(0|[1-9][0-9]*)(\\.[0-9]+)?"),
-        STRING {
+        NUMBER("a number", "-?(0|[1-9][0-9]*)(\\.[0-9]+)?"),
+        STRING("a string") {
             override fun getLength(input: CharSequence): Int {
                 if (input.isEmpty() || input[0] != '"') return 0
                 var index = 1
@@ -45,61 +45,66 @@ data class Token(val type: Type, val text: String, val span: Span) {
                 return 0
             }
         },
-        IDENTIFIER("[A-Za-z_][A-Za-z0-9_]*"),
+        IDENTIFIER("an identifier", "[A-Za-z_][A-Za-z0-9_]*"),
 
-        PLUS("\\+"),
-        MINUS("-"),
-        STAR("\\*"),
-        SLASH("/"),
-        PERCENT("%"),
-        CARET("\\^"),
-        EXCLAMATION("!"),
-        AMPERSAND("&"),
-        DOUBLE_AMPERSAND("&&"),
-        PIPE("\\|"),
-        DOUBLE_PIPE("\\|\\|"),
-        EQUAL("="),
-        DOUBLE_EQUAL("=="),
-        TRIPLE_EQUAL("==="),
-        NOT_EQUAL("!="),
-        NOT_DOUBLE_EQUAL("!=="),
-        LESS("<"),
-        LESS_EQUAL("<="),
-        GREATER(">"),
-        GREATER_EQUAL(">="),
-        OPEN_PAREN("\\("),
-        CLOSE_PAREN("\\)"),
-        OPEN_BRACE("\\{"),
-        CLOSE_BRACE("}"),
-        OPEN_BRACKET("\\["),
-        CLOSE_BRACKET("]"),
-        COMMA(","),
-        DOT("\\."),
-        COLON(":"),
-        DOUBLE_COLON("::"),
-        SEMICOLON(";"),
-        ARROW("->"),
+        PLUS("'+'", "\\+"),
+        MINUS("'-'", "-"),
+        STAR("'*'", "\\*"),
+        SLASH("'/'", "/"),
+        PERCENT("'%'", "%"),
+        CARET("'^'", "\\^"),
+        EXCLAMATION("'!'", "!"),
+        AMPERSAND("'&'", "&"),
+        DOUBLE_AMPERSAND("'&&'", "&&"),
+        PIPE("'|'", "\\|"),
+        DOUBLE_PIPE("'||'", "\\|\\|"),
+        EQUAL("'='", "="),
+        DOUBLE_EQUAL("'=='", "=="),
+        TRIPLE_EQUAL("'==='", "==="),
+        NOT_DOUBLE_EQUAL("'!='", "!="),
+        NOT_TRIPLE_EQUAL("'!=='", "!=="),
+        LESS("'<'", "<"),
+        DOUBLE_LESS("'<<'", "<<"),
+        LESS_EQUAL("'<='", "<="),
+        GREATER("'>'", ">"),
+        DOUBLE_GREATER("'>>'", ">>"),
+        TRIPLE_GREATER("'>>>'", ">>>"),
+        GREATER_EQUAL("'>='", ">="),
+        OPEN_PAREN("'('", "\\("),
+        CLOSE_PAREN("')'", "\\)"),
+        OPEN_BRACE("'{'", "\\{"),
+        CLOSE_BRACE("'}'", "}"),
+        OPEN_BRACKET("'['", "\\["),
+        CLOSE_BRACKET("']'", "]"),
+        COMMA("','", ","),
+        DOT("'.'", "\\."),
+        COLON("':'", ":"),
+        DOUBLE_COLON("'::'", "::"),
+        SEMICOLON("';'", ";"),
+        ARROW("'->'", "->"),
+        TILDE("'~'", "~"),
 
-        IN("in"),
-        NULL("null"),
-        TRUE("true"),
-        FALSE("false"),
+        IN("in", "in"),
+        NOT_IN("!in", "!in"),
+        NULL("null", "null"),
+        TRUE("true", "true"),
+        FALSE("false", "false"),
 
-        FUN("fun"),
-        VAL("val"),
-        VAR("var"),
-        IF("if"),
-        ELSE("else"),
-        WHILE("while"),
-        FOR("for"),
-        RETURN("return"),
-        BREAK("break"),
-        CONTINUE("continue"),
-        STRUCT("struct"),
-        TRAIT("trait"),
-        IMPL("impl"),
+        FUN("fun", "fun"),
+        VAL("val", "val"),
+        VAR("var", "var"),
+        IF("if", "if"),
+        ELSE("else", "else"),
+        WHILE("while", "while"),
+        FOR("for", "for"),
+        RETURN("return", "return"),
+        BREAK("break", "break"),
+        CONTINUE("continue", "continue"),
+        STRUCT("struct", "struct"),
+        TRAIT("trait", "trait"),
+        IMPL("impl", "impl"),
 
-        ERROR {
+        ERROR("error") {
             override fun getLength(input: CharSequence): Int = 0
         }
         ;
@@ -109,6 +114,10 @@ data class Token(val type: Type, val text: String, val span: Span) {
         open fun getLength(input: CharSequence): Int {
             checkNotNull(pattern)
             return pattern.matchAt(input, 0)?.value?.length ?: 0
+        }
+
+        override fun toString(): String {
+            return humanName
         }
     }
 

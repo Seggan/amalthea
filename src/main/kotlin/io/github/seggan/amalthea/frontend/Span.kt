@@ -54,6 +54,6 @@ data class Span(val start: Int, val endExclusive: Int, val source: CodeSource) {
     override fun toString(): String {
         return "${source.name}:${line}:${col}"
     }
-}
 
-private data class LineAndCol(val line: Int, val col: Int)
+    private data class LineAndCol(val line: Int, val col: Int)
+}

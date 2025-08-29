@@ -1,4 +1,4 @@
-package io.github.seggan.amalthea.app
+package io.github.seggan.amalthea
 
 import io.github.seggan.amalthea.frontend.CodeSource
 import io.github.seggan.amalthea.frontend.lexing.Lexer

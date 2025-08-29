@@ -3,11 +3,11 @@ package io.github.seggan.amalthea.query
 import io.github.seggan.amalthea.frontend.CodeSource
 import kotlin.reflect.KClass
 
-class QueryEngine(val sources: List<CodeSource>) : Queryable<Key.CodeSource, CodeSource> {
+class QueryEngine(val sources: List<CodeSource>) : Queryable<Key.Source, CodeSource> {
 
-    override val keyType = Key.CodeSource::class
+    override val keyType = Key.Source::class
 
-    override fun query(key: Key.CodeSource): CodeSource {
+    override fun query(key: Key.Source): CodeSource {
         return sources.first { it.name == key.source }
     }
 

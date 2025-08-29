@@ -49,7 +49,7 @@ class Parser private constructor(private val tokens: List<Token>) {
             val paramType = parseType()
             paramName to paramType
         }
-        val returnType = if (tryConsume(COLON) != null) parseType() else AstNode.NormalType("Unit", start, Unit)
+        val returnType = if (tryConsume(COLON) != null) parseType() else AstNode.Type(TypeName.Simple("Unit"), start, Unit)
         val body = parseBlock()
         return AstNode.FunctionDeclaration(name, parameters, returnType, body, start + body.span, Unit)
     }
@@ -224,7 +224,7 @@ class Parser private constructor(private val tokens: List<Token>) {
 
     private fun parseType(): AstNode.Type<Unit> {
         val name = parseId()
-        return AstNode.NormalType(name.text, name.span, Unit)
+        return AstNode.Type(TypeName.Simple(name.text), name.span, Unit)
     }
 
     private fun parseId(): Token {

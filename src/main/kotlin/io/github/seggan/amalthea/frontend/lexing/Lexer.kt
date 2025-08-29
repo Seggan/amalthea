@@ -10,7 +10,7 @@ class Lexer(private val queryEngine: QueryEngine) : Queryable<Key.Tokens, List<T
     override val keyType = Key.Tokens::class
 
     override fun query(key: Key.Tokens): List<Token> {
-        val source = queryEngine[Key.CodeSource(key.source)]
+        val source = queryEngine[Key.Source(key.source)]
         val builder = StringBuilder(source.text)
         val tokens = mutableListOf<Token>()
         var pos = 0

@@ -4,8 +4,10 @@ import io.github.seggan.amalthea.frontend.AmaltheaException
 import io.github.seggan.amalthea.frontend.CodeSource
 import io.github.seggan.amalthea.frontend.lexing.Lexer
 import io.github.seggan.amalthea.frontend.parsing.Parser.ParserQueryable
-import io.github.seggan.amalthea.frontend.parsing.UntypedFunctionQueryable
-import io.github.seggan.amalthea.query.Key
+import io.github.seggan.amalthea.frontend.typing.FunctionResolver
+import io.github.seggan.amalthea.frontend.typing.HeaderResolver
+import io.github.seggan.amalthea.frontend.typing.TypeChecker
+import io.github.seggan.amalthea.frontend.typing.TypeResolver
 import io.github.seggan.amalthea.query.QueryEngine
 import java.nio.file.FileSystems
 import kotlin.io.path.Path
@@ -25,11 +27,14 @@ fun main(args: Array<String>) {
     val queryEngine = QueryEngine(codeSources)
     queryEngine.register(::Lexer)
     queryEngine.register(::ParserQueryable)
-    queryEngine.register(::UntypedFunctionQueryable)
+    queryEngine.register(::TypeResolver)
+    queryEngine.register(::FunctionResolver)
+    queryEngine.register(::HeaderResolver)
+    queryEngine.register(::TypeChecker)
 
     try {
-        val ast = queryEngine[Key.UntypedFunction("main", emptyList())]
-        println(ast)
+//        val ast = queryEngine[Key.UntypedFunction("main", emptyList())]
+//        println(ast)
     } catch (e: AmaltheaException) {
         System.err.println(e.report())
         exitProcess(1)

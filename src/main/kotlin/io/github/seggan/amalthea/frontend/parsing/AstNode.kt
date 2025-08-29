@@ -132,10 +132,8 @@ sealed interface AstNode<out E> {
         }
     }
 
-    sealed interface Type<out E> : AstNode<E>
-
-    data class NormalType<E>(val name: String, override val span: Span, override val extra: E) : Type<E> {
-        override fun toString() = name
+    data class Type<E>(val name: TypeName, override val span: Span, override val extra: E) : AstNode<E> {
+        override fun toString() = name.toString()
     }
 }
 

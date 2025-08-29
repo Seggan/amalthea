@@ -18,7 +18,7 @@ class Lexer(private val queryEngine: QueryEngine) : Queryable<Key.Tokens, List<T
             var longestMatch: Token? = null
             for (type in Token.Type.entries) {
                 val matchLength = type.getLength(builder)
-                if (matchLength != 0 && (longestMatch == null || matchLength > longestMatch.span.length)) {
+                if (matchLength != 0 && (longestMatch == null || matchLength >= longestMatch.span.length)) {
                     longestMatch = Token(
                         type,
                         builder.substring(0, matchLength),

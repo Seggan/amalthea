@@ -37,11 +37,9 @@ sealed interface AstNode<out E> {
             appendIndented("Name: $name")
             appendIndented("Parameters:")
             for ((paramName, paramType) in parameters) {
-                appendIndented("$paramName:", indent = 4)
-                appendIndented(paramType, indent = 6)
+                appendIndented("$paramName: $paramType", indent = 4)
             }
-            appendIndented("Return type:")
-            appendIndented(returnType, indent = 4)
+            appendIndented("Return type: $returnType")
             appendIndented("Body:")
             appendIndented(body, indent = 4)
             appendIndented("Extra: $extra")
@@ -137,21 +135,7 @@ sealed interface AstNode<out E> {
     sealed interface Type<out E> : AstNode<E>
 
     data class NormalType<E>(val name: String, override val span: Span, override val extra: E) : Type<E> {
-        override fun toString() = buildString {
-            appendLine("Type:")
-            appendIndented("Name: $name")
-            appendIndented("Extra: $extra")
-        }
-    }
-
-    data class ImplicitUnit<E>(override val extra: E) : Type<E> {
-        override val span: Span
-            get() = throw IllegalStateException("ImplicitUnit has no span")
-
-        override fun toString() = buildString {
-            appendLine("ImplicitUnit:")
-            appendIndented("Extra: $extra")
-        }
+        override fun toString() = name
     }
 }
 

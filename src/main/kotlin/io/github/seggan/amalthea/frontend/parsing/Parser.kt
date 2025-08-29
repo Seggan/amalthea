@@ -49,7 +49,7 @@ class Parser private constructor(private val tokens: List<Token>) {
             val paramType = parseType()
             paramName to paramType
         }
-        val returnType = if (tryConsume(COLON) != null) parseType() else AstNode.ImplicitUnit(Unit)
+        val returnType = if (tryConsume(COLON) != null) parseType() else AstNode.NormalType("Unit", start, Unit)
         val body = parseBlock()
         return AstNode.FunctionDeclaration(name, parameters, returnType, body, start + body.span, Unit)
     }
@@ -196,6 +196,7 @@ class Parser private constructor(private val tokens: List<Token>) {
                             append(code.toChar())
                             i += 4
                         }
+
                         else -> throw ParseException("Unknown escape sequence \\$esc", token.span)
                     }
                 } else {
@@ -299,11 +300,11 @@ class Parser private constructor(private val tokens: List<Token>) {
         return args
     }
 
-    class ParserQueryable(private val queryEngine: QueryEngine) : Queryable<Key.UntypedAst, AstNode<Unit>> {
+    class ParserQueryable(private val queryEngine: QueryEngine) : Queryable<Key.UntypedAst, AstNode.File<Unit>> {
 
         override val keyType = Key.UntypedAst::class
 
-        override fun query(key: Key.UntypedAst): AstNode<Unit> {
+        override fun query(key: Key.UntypedAst): AstNode.File<Unit> {
             val tokens = queryEngine[Key.Tokens(key.source)]
             val parser = Parser(tokens)
             val ast = parser.parse()

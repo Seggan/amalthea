@@ -3,7 +3,7 @@ package io.github.seggan.amalthea.query
 import io.github.seggan.amalthea.frontend.CodeSource
 import kotlin.reflect.KClass
 
-class QueryEngine(private val sources: List<CodeSource>) : Queryable<Key.CodeSource, CodeSource> {
+class QueryEngine(val sources: List<CodeSource>) : Queryable<Key.CodeSource, CodeSource> {
 
     override val keyType = Key.CodeSource::class
 
@@ -21,11 +21,16 @@ class QueryEngine(private val sources: List<CodeSource>) : Queryable<Key.CodeSou
         queryables[keyType] = queryable
     }
 
+    private var logDepth = 0
+
     operator fun <V : Any> get(key: Key<V>): V {
         @Suppress("UNCHECKED_CAST")
         return queryCache.getOrPut(key) {
+            println("${"  ".repeat(logDepth++)}$key")
             val queryable = queryables[key::class] ?: error("No queryable registered for key ${key::class}")
-            (queryable as Queryable<Key<V>, V>).query(key)
+            val result = (queryable as Queryable<Key<V>, V>).query(key)
+            logDepth--
+            result
         } as V
     }
 }

@@ -1,6 +1,6 @@
 package io.github.seggan.amalthea.frontend
 
-abstract class AmaltheaException(
+open class AmaltheaException(
     message: String?,
     val backtrace: MutableList<Span>,
     cause: Throwable? = null

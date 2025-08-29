@@ -4,6 +4,7 @@ import io.github.seggan.amalthea.frontend.AmaltheaException
 import io.github.seggan.amalthea.frontend.CodeSource
 import io.github.seggan.amalthea.frontend.lexing.Lexer
 import io.github.seggan.amalthea.frontend.parsing.Parser.ParserQueryable
+import io.github.seggan.amalthea.frontend.parsing.UntypedFunctionQueryable
 import io.github.seggan.amalthea.query.Key
 import io.github.seggan.amalthea.query.QueryEngine
 import java.nio.file.FileSystems
@@ -24,12 +25,11 @@ fun main(args: Array<String>) {
     val queryEngine = QueryEngine(codeSources)
     queryEngine.register(::Lexer)
     queryEngine.register(::ParserQueryable)
+    queryEngine.register(::UntypedFunctionQueryable)
 
     try {
-        for (source in codeSources) {
-            val ast = queryEngine[Key.UntypedAst(source.name)]
-            println(ast)
-        }
+        val ast = queryEngine[Key.UntypedFunction("main", emptyList())]
+        println(ast)
     } catch (e: AmaltheaException) {
         System.err.println(e.report())
         exitProcess(1)

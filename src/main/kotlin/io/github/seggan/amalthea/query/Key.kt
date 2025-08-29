@@ -9,5 +9,8 @@ sealed interface Key<V : Any> {
 
     data class Tokens(val source: String) : Key<List<Token>>
 
-    data class UntypedAst(val source: String) : Key<AstNode<Unit>>
+    data class UntypedAst(val source: String) : Key<AstNode.File<Unit>>
+
+    data class UntypedFunction(val name: String, val paramTypes: List<AstNode.Type<Unit>>) :
+        Key<AstNode.FunctionDeclaration<Unit>>
 }

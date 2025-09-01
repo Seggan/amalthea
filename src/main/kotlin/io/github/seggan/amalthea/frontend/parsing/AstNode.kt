@@ -1,21 +1,20 @@
 package io.github.seggan.amalthea.frontend.parsing
 
-import io.github.seggan.amalthea.frontend.AmaltheaException
-import io.github.seggan.amalthea.frontend.BinOp
-import io.github.seggan.amalthea.frontend.Span
-import io.github.seggan.amalthea.frontend.UnOp
+import io.github.seggan.amalthea.frontend.*
 
 sealed interface AstNode<out E> {
     val span: Span
     val extra: E
 
     data class File<E>(
+        val pkg: List<String>,
         val declarations: List<FunctionDeclaration<E>>,
         override val span: Span,
         override val extra: E
     ) : AstNode<E> {
         override fun toString() = buildString {
             appendLine("File:")
+            appendIndented("Package: ${pkg.joinToString("::")}")
             appendIndented("Functions:")
             for (decl in declarations) {
                 appendIndented(decl, indent = 4)
@@ -90,7 +89,7 @@ sealed interface AstNode<out E> {
     }
 
     data class FunctionCall<E>(
-        val name: String,
+        val name: QualifiedName,
         val arguments: List<Expression<E>>,
         override val span: Span,
         override val extra: E

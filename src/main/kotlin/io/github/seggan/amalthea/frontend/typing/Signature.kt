@@ -1,6 +1,8 @@
 package io.github.seggan.amalthea.frontend.typing
 
-data class Signature(val name: String, val type: Type.Function) {
+import io.github.seggan.amalthea.frontend.QualifiedName
+
+data class Signature(val name: QualifiedName, val type: Type.Function) {
     override fun toString(): String = buildString {
         append(name)
         append("(")
@@ -9,12 +11,8 @@ data class Signature(val name: String, val type: Type.Function) {
         append(type.returnType)
     }
 
-    fun canCallWith(other: Signature): Boolean {
-        if (name != other.name) return false
-        if (type.args.size != other.type.args.size) return false
-        for (i in type.args.indices) {
-            if (!other.type.args[i].isAssignableTo(type.args[i])) return false
-        }
-        return true
+    fun canCallWith(args: List<Type>): Boolean {
+        if (args.size != type.args.size) return false
+        return args.zip(type.args).all { (given, expected) -> given.isAssignableTo(expected) }
     }
 }

@@ -3,15 +3,9 @@ package io.github.seggan.amalthea.query
 import io.github.seggan.amalthea.frontend.CodeSource
 import kotlin.reflect.KClass
 
-class QueryEngine(val sources: List<CodeSource>) : Queryable<Key.Source, CodeSource> {
+class QueryEngine(val sources: List<CodeSource>) {
 
-    override val keyType = Key.Source::class
-
-    override fun query(key: Key.Source): CodeSource {
-        return sources.first { it.name == key.source }
-    }
-
-    private val queryables = mutableMapOf<KClass<*>, Queryable<*, *>>(keyType to this)
+    private val queryables = mutableMapOf<KClass<*>, Queryable<*, *>>()
     private val queryCache = mutableMapOf<Key<*>, Any>()
 
     fun register(constructor: (QueryEngine) -> Queryable<*, *>) {

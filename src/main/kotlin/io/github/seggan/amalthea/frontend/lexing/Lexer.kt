@@ -5,12 +5,12 @@ import io.github.seggan.amalthea.query.Key
 import io.github.seggan.amalthea.query.QueryEngine
 import io.github.seggan.amalthea.query.Queryable
 
-class Lexer(private val queryEngine: QueryEngine) : Queryable<Key.Tokens, List<Token>> {
+class Lexer(@Suppress("unused") queryEngine: QueryEngine) : Queryable<Key.Tokens, List<Token>> {
 
     override val keyType = Key.Tokens::class
 
     override fun query(key: Key.Tokens): List<Token> {
-        val source = queryEngine[Key.Source(key.source)]
+        val source = key.source
         val builder = StringBuilder(source.text)
         val tokens = mutableListOf<Token>()
         var pos = 0

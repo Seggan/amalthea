@@ -2,7 +2,7 @@ package io.github.seggan.amalthea.frontend
 
 open class AmaltheaException(
     message: String?,
-    val backtrace: MutableList<Span>,
+    val backtrace: MutableList<Span> = mutableListOf(),
     cause: Throwable? = null
 ) : RuntimeException(message, cause) {
 

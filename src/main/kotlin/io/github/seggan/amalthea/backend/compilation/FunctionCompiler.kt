@@ -58,23 +58,19 @@ class FunctionCompiler private constructor(
             }
         }
         val (name, type) = callData.signature
-        val compiledFunction = queryEngine[Key.Compile(
-            name,
-            type.toTypeName(),
-            TODO()
-        )]
+        val compiledFunction = TODO()
     }
 
     class QueryProvider(private val queryEngine: QueryEngine) : Queryable<Key.Compile, CompiledFunction> {
         override val keyType = Key.Compile::class
 
         override fun query(key: Key.Compile): CompiledFunction {
-            val typedAst = queryEngine[Key.TypeCheck(key.name, key.type, key.context)]
-            val (header, _) = queryEngine[Key.ResolveHeader(key.name, key.type, key.context)]
+            val typedAst = queryEngine[Key.TypeCheck(key.name, key.type)]
+            val (header, _) = queryEngine[Key.ResolveHeader(key.name, key.type)]
             val mv = DeferredMethodVisitor()
             val compiler = FunctionCompiler(header, queryEngine, mv)
             compiler.compile(typedAst)
-            return CompiledFunction(header, mv, compiler.dependencies, key.context)
+            return CompiledFunction(header, mv, compiler.dependencies)
         }
     }
 }

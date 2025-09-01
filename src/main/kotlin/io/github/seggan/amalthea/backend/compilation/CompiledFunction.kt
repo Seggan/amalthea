@@ -7,13 +7,12 @@ import org.objectweb.asm.Opcodes
 class CompiledFunction(
     val signature: Signature,
     val code: DeferredMethodVisitor,
-    val dependencies: Set<CompiledFunction>,
-    val source: String
+    val dependencies: Set<CompiledFunction>
 ) {
     fun createIn(cv: ClassVisitor) {
         val mv = cv.visitMethod(
             Opcodes.ACC_PUBLIC or Opcodes.ACC_STATIC,
-            signature.name,
+            signature.name.name,
             signature.type.jvmType,
             null,
             null

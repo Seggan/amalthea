@@ -3,6 +3,7 @@ package io.github.seggan.amalthea.frontend.parsing
 import io.github.seggan.amalthea.frontend.*
 import io.github.seggan.amalthea.frontend.lexing.Token
 import io.github.seggan.amalthea.frontend.lexing.Token.Type.*
+import io.github.seggan.amalthea.frontend.typing.Type
 import io.github.seggan.amalthea.query.Key
 import io.github.seggan.amalthea.query.QueryEngine
 import io.github.seggan.amalthea.query.Queryable
@@ -16,6 +17,7 @@ class Parser private constructor(private val tokens: List<Token>) {
         get() = index >= tokens.size
 
     private fun parse(): AstNode.File<Unit> {
+        val (pkg, _) = parsePackage()
         val functions = mutableListOf<AstNode.FunctionDeclaration<Unit>>()
         while (index < tokens.size) {
             try {
@@ -35,7 +37,27 @@ class Parser private constructor(private val tokens: List<Token>) {
         } else {
             tokens.first().span + tokens.last().span
         }
-        return AstNode.File(functions, span, Unit)
+        return AstNode.File(pkg, functions, span, Unit)
+    }
+
+    private fun parsePackage(): Pair<List<String>, Span> {
+        val pkg = mutableListOf<String>()
+        var span: Span? = null
+        consume(PACKAGE)
+        while (true) {
+            val id = parseId()
+            if (span == null) {
+                span = id.span
+            } else {
+                span += id.span
+            }
+            pkg.add(id.text)
+            if (tryConsume(SEMICOLON) != null) {
+                break
+            }
+            consume(DOUBLE_COLON)
+        }
+        return pkg to span
     }
 
     private fun parseFunction(): AstNode.FunctionDeclaration<Unit> {
@@ -48,7 +70,11 @@ class Parser private constructor(private val tokens: List<Token>) {
             val paramType = parseType()
             paramName to paramType
         }
-        val returnType = if (tryConsume(COLON) != null) parseType() else AstNode.Type(TypeName.Simple("Unit"), start, Unit)
+        val returnType = if (tryConsume(COLON) != null) parseType() else AstNode.Type(
+            TypeName.Simple(Type.Unit.qName),
+            start,
+            Unit
+        )
         val body = parseBlock()
         return AstNode.FunctionDeclaration(name, parameters, returnType, body, start + body.span, Unit)
     }
@@ -215,19 +241,34 @@ class Parser private constructor(private val tokens: List<Token>) {
     }
 
     private fun parseFunctionCall(): AstNode.FunctionCall<Unit> {
-        val name = parseId()
+        val (qName, span) = parseQualifiedName()
         consume(OPEN_PAREN)
         val args = parseArgList(CLOSE_PAREN, ::parseExpression)
-        return AstNode.FunctionCall(name.text, args, name.span + tokens[index - 1].span, Unit)
+        return AstNode.FunctionCall(qName, args, span + tokens[index - 1].span, Unit)
     }
 
     private fun parseType(): AstNode.Type<Unit> {
-        val name = parseId()
-        return AstNode.Type(TypeName.Simple(name.text), name.span, Unit)
+        val (qName, span) = parseQualifiedName()
+        return AstNode.Type(TypeName.Simple(qName), span, Unit)
     }
 
     private fun parseId(): Token {
         return consume(IDENTIFIER) // can add soft keywords
+    }
+
+    private fun parseQualifiedName(): Pair<QualifiedName, Span> {
+        val parts = mutableListOf<String>()
+        var span: Span? = null
+        do {
+            val id = parseId()
+            if (span == null) {
+                span = id.span
+            } else {
+                span += id.span
+            }
+            parts.add(id.text)
+        } while (tryConsume(DOUBLE_COLON) != null)
+        return QualifiedName(parts.dropLast(1), parts.last()) to span
     }
 
     private fun tryConsume(vararg types: Token.Type): Token? {

@@ -10,7 +10,7 @@ import org.objectweb.asm.Opcodes
 import java.io.PrintStream
 
 enum class Intrinsics(val signature: Signature) {
-    PRINTLN(Signature("println", Type.Function(listOf(Type.Any), Type.Unit))) {
+    PRINTLN(Signature(QualifiedName(listOf(), "println"), Type.Function(listOf(Type.Any), Type.Unit))) {
         override fun compile(mv: DeferredMethodVisitor) {
             mv.visitFieldInsn(Opcodes.GETSTATIC, asmTypeName<System>(), "out", asmDescriptor<PrintStream>())
             mv.visitMethodInsn(

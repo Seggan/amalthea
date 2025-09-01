@@ -7,32 +7,32 @@ import io.github.seggan.amalthea.query.Key
 import io.github.seggan.amalthea.query.QueryEngine
 import io.github.seggan.amalthea.query.Queryable
 
-class FunctionResolver(private val queryEngine: QueryEngine) : Queryable<Key.ResolveFunction, Signature> {
-    override val keyType = Key.ResolveFunction::class
+class FunctionResolver(private val queryEngine: QueryEngine) : Queryable<Key.ResolveFunctionCall, Signature> {
+    override val keyType = Key.ResolveFunctionCall::class
 
-    override fun query(key: Key.ResolveFunction): Signature {
-        val signature = key.signature
+    override fun query(key: Key.ResolveFunctionCall): Signature {
+        val args = key.args
         for (intrinsic in Intrinsics.entries) {
-            if (intrinsic.signature.canCallWith(signature)) {
+            if (intrinsic.signature.canCallWith(args)) {
                 return intrinsic.signature
             }
         }
-        val untypedAst = queryEngine[Key.UntypedAst(key.context)]
+        val source = queryEngine[Key.ResolvePackage(key.name.pkg)]
+        val untypedAst = queryEngine[Key.UntypedAst(source)]
         for (function in untypedAst.declarations) {
             val (functionSignature, _) = queryEngine[Key.ResolveHeader(
-                function.name,
+                key.name,
                 TypeName.Function(
                     function.parameters.map { it.second.name },
                     function.returnType.name
-                ),
-                key.context
+                )
             )]
-            if (functionSignature.canCallWith(signature)) {
+            if (functionSignature.canCallWith(args)) {
                 return functionSignature
             }
         }
         throw AmaltheaException(
-            "Could find function matching '$signature'",
+            "Could find function matching '$args'",
             mutableListOf()
         )
     }

@@ -5,11 +5,6 @@ import io.github.seggan.amalthea.frontend.lexing.Token.Type.*
 import io.github.seggan.amalthea.frontend.typing.Type
 
 sealed class BinOp(val tokenType: Token.Type) {
-//    ADD, SUB, MUL, DIV, MOD,
-//    SHIFT_LEFT, SHIFT_RIGHT, USHIFT_RIGHT, BIT_AND, BIT_OR, BIT_XOR,
-//    EQ, NOT_EQ, IS, NOT_IS, LT, LT_EQ, GT, GT_EQ,
-//    AND, OR,
-//    IN, NOT_IN;
 
     abstract fun checkType(left: Type, right: Type): Type
 
@@ -18,7 +13,7 @@ sealed class BinOp(val tokenType: Token.Type) {
             if (left.isAssignableTo(Type.Primitive.DOUBLE) && right.isAssignableTo(Type.Primitive.DOUBLE)) {
                 return if (left.isAssignableTo(right)) right else left
             }
-            throw AmaltheaException("Cannot perform '${this.tokenType}' on $left and $right", mutableListOf())
+            throw AmaltheaException("Cannot perform ${this.tokenType} on $left and $right", mutableListOf())
         }
     }
 
@@ -33,7 +28,7 @@ sealed class BinOp(val tokenType: Token.Type) {
             if (left.isAssignableTo(Type.Primitive.LONG) && right.isAssignableTo(Type.Primitive.LONG)) {
                 return if (left.isAssignableTo(right)) right else left
             }
-            throw AmaltheaException("Cannot perform '${this.tokenType}' on $left and $right", mutableListOf())
+            throw AmaltheaException("Cannot perform ${this.tokenType} on $left and $right", mutableListOf())
         }
     }
 
@@ -49,7 +44,7 @@ sealed class BinOp(val tokenType: Token.Type) {
             if (left.isAssignableTo(right) || right.isAssignableTo(left)) {
                 return Type.Primitive.BOOLEAN
             }
-            throw AmaltheaException("Cannot perform '${this.tokenType}' on $left and $right", mutableListOf())
+            throw AmaltheaException("Cannot perform ${this.tokenType} on $left and $right", mutableListOf())
         }
     }
 
@@ -67,7 +62,7 @@ sealed class BinOp(val tokenType: Token.Type) {
             if (left.isAssignableTo(Type.Primitive.BOOLEAN) && right.isAssignableTo(Type.Primitive.BOOLEAN)) {
                 return Type.Primitive.BOOLEAN
             }
-            throw AmaltheaException("Cannot perform '${this.tokenType}' on $left and $right", mutableListOf())
+            throw AmaltheaException("Cannot perform ${this.tokenType} on $left and $right", mutableListOf())
         }
     }
 

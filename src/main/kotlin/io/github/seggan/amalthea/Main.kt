@@ -1,9 +1,11 @@
 package io.github.seggan.amalthea
 
+import io.github.seggan.amalthea.backend.SourceClassResolver
+import io.github.seggan.amalthea.backend.compilation.FunctionCompiler
 import io.github.seggan.amalthea.frontend.AmaltheaException
 import io.github.seggan.amalthea.frontend.CodeSource
 import io.github.seggan.amalthea.frontend.lexing.Lexer
-import io.github.seggan.amalthea.frontend.parsing.Parser.ParserQueryable
+import io.github.seggan.amalthea.frontend.parsing.Parser
 import io.github.seggan.amalthea.frontend.parsing.TypeName
 import io.github.seggan.amalthea.frontend.typing.FunctionResolver
 import io.github.seggan.amalthea.frontend.typing.HeaderResolver
@@ -28,11 +30,13 @@ fun main(args: Array<String>) {
         .toList()
     val queryEngine = QueryEngine(codeSources)
     queryEngine.register(::Lexer)
-    queryEngine.register(::ParserQueryable)
+    queryEngine.register(Parser::QueryProvider)
     queryEngine.register(::TypeResolver)
     queryEngine.register(::FunctionResolver)
     queryEngine.register(::HeaderResolver)
     queryEngine.register(::TypeChecker)
+    queryEngine.register(::SourceClassResolver)
+    queryEngine.register(FunctionCompiler::QueryProvider)
 
     try {
         val ast = queryEngine[Key.TypeCheck("main", emptyList(), TypeName.Simple("Unit"), "test.am")]

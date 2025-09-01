@@ -13,8 +13,7 @@ class TypeChecker(private val queryEngine: QueryEngine) :
     override fun query(key: Key.TypeCheck): AstNode.FunctionDeclaration<TypeData> {
         val (signature, untypedAst) = queryEngine[Key.ResolveHeader(
             key.name,
-            key.args,
-            key.returnType,
+            key.type,
             key.context
         )]
         val body = checkBlock(untypedAst.body)
@@ -55,9 +54,11 @@ class TypeChecker(private val queryEngine: QueryEngine) :
 
     private fun checkFunctionCall(node: AstNode.FunctionCall<Unit>): AstNode.FunctionCall<TypeData> {
         val arguments = node.arguments.map(::checkExpression)
-        val function = inContext(node) {
-            queryEngine[Key.ResolveFunction(node.name, arguments.map { it.extra.type }, node.span.source.name)]
-        }
+        val signature = Signature(
+            node.name,
+            Type.Function(arguments.map { it.extra.type }, Type.Nothing) // Nothing will unify with everything
+        )
+        val function = inContext(node) { queryEngine[Key.ResolveFunction(signature, node.span.source.name)] }
         return AstNode.FunctionCall(node.name, arguments, node.span, TypeData.FunctionCall(function))
     }
 

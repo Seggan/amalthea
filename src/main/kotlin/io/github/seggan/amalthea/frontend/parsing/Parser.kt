@@ -68,6 +68,7 @@ class Parser private constructor(private val tokens: List<Token>) {
             } catch (e: ParseException) {
                 errors.add(e)
                 skipUntil(SEMICOLON)
+                index++
             }
         }
         return AstNode.Block(statements, start + lastSpan, Unit)
@@ -298,7 +299,7 @@ class Parser private constructor(private val tokens: List<Token>) {
         return args
     }
 
-    class ParserQueryable(private val queryEngine: QueryEngine) : Queryable<Key.UntypedAst, AstNode.File<Unit>> {
+    class QueryProvider(private val queryEngine: QueryEngine) : Queryable<Key.UntypedAst, AstNode.File<Unit>> {
 
         override val keyType = Key.UntypedAst::class
 

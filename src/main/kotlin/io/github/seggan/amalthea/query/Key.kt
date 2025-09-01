@@ -1,5 +1,7 @@
 package io.github.seggan.amalthea.query
 
+import io.github.seggan.amalthea.backend.compilation.AsmType
+import io.github.seggan.amalthea.backend.compilation.CompiledFunction
 import io.github.seggan.amalthea.frontend.CodeSource
 import io.github.seggan.amalthea.frontend.lexing.Token
 import io.github.seggan.amalthea.frontend.parsing.AstNode
@@ -20,17 +22,23 @@ sealed interface Key<V : Any> {
 
     data class ResolveHeader(
         val name: String,
-        val args: List<TypeName>,
-        val returnType: TypeName,
+        val type: TypeName.Function,
         val context: String
     ) : Key<Pair<Signature, AstNode.FunctionDeclaration<Unit>>>
 
-    data class ResolveFunction(val name: String, val args: List<Type>, val context: String) : Key<Signature>
+    data class ResolveFunction(val signature: Signature, val context: String) : Key<Signature>
 
     data class TypeCheck(
         val name: String,
-        val args: List<TypeName>,
-        val returnType: TypeName,
+        val type: TypeName.Function,
         val context: String
     ) : Key<AstNode.FunctionDeclaration<TypeData>>
+
+    data class Compile(
+        val name: String,
+        val type: TypeName.Function,
+        val context: String
+    ) : Key<CompiledFunction>
+
+    data class RevolveSourceClass(val source: String) : Key<AsmType>
 }

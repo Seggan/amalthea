@@ -9,5 +9,8 @@ data class QualifiedName(val pkg: List<String>, val name: String) {
 
     companion object {
         fun amalthea(name: String) = QualifiedName(listOf("amalthea"), name)
+
+        fun className(source: CodeSource): String =
+            source.name.split('.').first().replaceFirstChar(Char::uppercase) + "Am"
     }
 }

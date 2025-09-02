@@ -75,7 +75,16 @@ class Parser private constructor(private val tokens: List<Token>) {
             start,
             Unit
         )
-        val body = parseBlock()
+        var body = parseBlock()
+        if (returnType.name == Type.Unit.asTypeName()) {
+            if (body.statements.lastOrNull() !is AstNode.Return) {
+                body = AstNode.Block(
+                    body.statements + AstNode.Return(null, body.span, Unit),
+                    body.span,
+                    Unit
+                )
+            }
+        }
         return AstNode.FunctionDeclaration(name, parameters, returnType, body, start + body.span, Unit)
     }
 
@@ -102,8 +111,16 @@ class Parser private constructor(private val tokens: List<Token>) {
 
     private fun parseStatement(): AstNode.Statement<Unit> = oneOf(
         { parseExpression().also { consume(SEMICOLON) } },
-        ::parseBlock
+        ::parseBlock,
+        ::parseReturn
     )
+
+    private fun parseReturn(): AstNode.Return<Unit> {
+        val start = consume(RETURN).span
+        val expr = if (tryConsume(SEMICOLON) != null) null else parseExpression().also { consume(SEMICOLON) }
+        val span = if (expr != null) start + expr.span else start + tokens[index - 1].span
+        return AstNode.Return(expr, span, Unit)
+    }
 
     private fun parseExpression() = parseAndOr()
 

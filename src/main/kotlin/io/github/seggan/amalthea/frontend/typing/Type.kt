@@ -9,6 +9,9 @@ sealed interface Type {
     val qName: QualifiedName
     val jvmType: String
 
+    val isJavaVoid: Boolean
+        get() = false
+
     fun asTypeName(): TypeName {
         return TypeName.Simple(qName)
     }
@@ -45,12 +48,14 @@ sealed interface Type {
     data object Unit : Type {
         override val qName = QualifiedName.amalthea("Unit")
         override val jvmType = "V"
+        override val isJavaVoid = true
         override fun toString(): String = qName.toString()
     }
 
     data object Nothing : Type {
         override val qName = QualifiedName.amalthea("Nothing")
         override val jvmType = "V"
+        override val isJavaVoid = true
 
         override fun isAssignableTo(other: Type): Boolean {
             return true

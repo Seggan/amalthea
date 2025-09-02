@@ -1,6 +1,7 @@
 package io.github.seggan.amalthea.backend.compilation
 
 import io.github.seggan.amalthea.frontend.Intrinsics
+import io.github.seggan.amalthea.frontend.QualifiedName
 import io.github.seggan.amalthea.frontend.parsing.AstNode
 import io.github.seggan.amalthea.frontend.typing.Signature
 import io.github.seggan.amalthea.frontend.typing.Type
@@ -36,8 +37,25 @@ class FunctionCompiler private constructor(
     }
 
     private fun compileStatement(node: AstNode.Statement<TypeData>) = when (node) {
-        is AstNode.Expression -> compileExpression(node)
+        is AstNode.Expression -> compileExpression(node).also {
+            if (!node.extra.type.isJavaVoid) {
+                mv.visitInsn(POP)
+            }
+        }
+
         is AstNode.Block -> compileBlock(node)
+        is AstNode.Return -> compileReturn(node)
+    }
+
+    private fun compileReturn(node: AstNode.Return<TypeData>) {
+        val returnType = header.type.returnType
+        if (returnType.isJavaVoid) {
+            mv.visitInsn(RETURN)
+        } else {
+            compileExpression(node.expr!!)
+            mv.boxConditional(node.expr.extra.type, returnType)
+            mv.visitInsn(returnType.asmType.getOpcode(IRETURN))
+        }
     }
 
     private fun compileExpression(node: AstNode.Expression<TypeData>) = when (node) {
@@ -85,8 +103,12 @@ class FunctionCompiler private constructor(
                 return
             }
         }
-        val compiledFunction = queryEngine[Key.Compile(name, type.asTypeName())]
-        TODO()
+
+        dependencies.add(queryEngine[Key.Compile(name, type.asTypeName())])
+        val source = queryEngine[Key.ResolvePackage(name.pkg)]
+        val jvmName = QualifiedName(name.pkg, QualifiedName.className(source)).internalName
+        mv.visitMethodInsn(INVOKESTATIC, jvmName, name.name, type.jvmType, false)
+        mv.unboxConditional(type.returnType, node.extra.type)
     }
 
     private fun compileIntLiteral(node: AstNode.IntLiteral<TypeData>) {
@@ -195,6 +217,77 @@ private fun DeferredMethodVisitor.boxConditional(provided: Type, expected: Type)
             "java/lang/Character",
             "valueOf",
             "(C)Ljava/lang/Character;",
+            false
+        )
+
+        else -> {}
+    }
+}
+
+private fun DeferredMethodVisitor.unboxConditional(provided: Type, expected: Type) {
+    if (!(provided !is Type.Primitive && expected is Type.Primitive)) return
+    when (expected) {
+        Type.Primitive.BYTE -> visitMethodInsn(
+            INVOKEVIRTUAL,
+            "java/lang/Number",
+            "byteValue",
+            "()B",
+            false
+        )
+
+        Type.Primitive.SHORT -> visitMethodInsn(
+            INVOKEVIRTUAL,
+            "java/lang/Number",
+            "shortValue",
+            "()S",
+            false
+        )
+
+        Type.Primitive.INT -> visitMethodInsn(
+            INVOKEVIRTUAL,
+            "java/lang/Number",
+            "intValue",
+            "()I",
+            false
+        )
+
+        Type.Primitive.LONG -> visitMethodInsn(
+            INVOKEVIRTUAL,
+            "java/lang/Number",
+            "longValue",
+            "()J",
+            false
+        )
+
+        Type.Primitive.FLOAT -> visitMethodInsn(
+            INVOKEVIRTUAL,
+            "java/lang/Number",
+            "floatValue",
+            "()F",
+            false
+        )
+
+        Type.Primitive.DOUBLE -> visitMethodInsn(
+            INVOKEVIRTUAL,
+            "java/lang/Number",
+            "doubleValue",
+            "()D",
+            false
+        )
+
+        Type.Primitive.BOOLEAN -> visitMethodInsn(
+            INVOKEVIRTUAL,
+            "java/lang/Boolean",
+            "booleanValue",
+            "()Z",
+            false
+        )
+
+        Type.Primitive.CHAR -> visitMethodInsn(
+            INVOKEVIRTUAL,
+            "java/lang/Character",
+            "charValue",
+            "()C",
             false
         )
 

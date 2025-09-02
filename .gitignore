@@ -5,6 +5,7 @@ build/
 !**/src/test/**/build/
 /test/
 *.class
+/out/
 
 ### IntelliJ IDEA ###
 .idea

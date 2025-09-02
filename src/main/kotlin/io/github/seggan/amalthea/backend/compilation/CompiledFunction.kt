@@ -11,7 +11,7 @@ class CompiledFunction(
 ) {
     fun createIn(cv: ClassVisitor) {
         val mv = cv.visitMethod(
-            Opcodes.ACC_PUBLIC or Opcodes.ACC_STATIC,
+            Opcodes.ACC_PUBLIC or Opcodes.ACC_STATIC or Opcodes.ACC_FINAL,
             signature.name.name,
             if (signature.name.name == "main") "([Ljava/lang/String;)V" else signature.type.jvmType,
             null,

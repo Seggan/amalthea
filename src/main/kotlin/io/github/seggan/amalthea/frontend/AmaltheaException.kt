@@ -6,6 +6,8 @@ open class AmaltheaException(
     cause: Throwable? = null
 ) : RuntimeException(message, cause) {
 
+    constructor(message: String?, span: Span) : this(message, mutableListOf(span), null)
+
     open fun report(): String {
         if (backtrace.isEmpty()) return "Error: ${message ?: "Unknown error"}"
         val mainSb = StringBuilder("Error ")

@@ -1,24 +1,21 @@
 package io.github.seggan.amalthea.frontend.typing
 
+import io.github.seggan.amalthea.frontend.AmaltheaException
 import io.github.seggan.amalthea.frontend.parsing.AstNode
 import io.github.seggan.amalthea.frontend.parsing.inContext
 import io.github.seggan.amalthea.query.Key
 import io.github.seggan.amalthea.query.QueryEngine
 import io.github.seggan.amalthea.query.Queryable
 
-class TypeChecker(private val queryEngine: QueryEngine) :
-    Queryable<Key.TypeCheck, AstNode.FunctionDeclaration<TypeData>> {
-    override val keyType = Key.TypeCheck::class
+class TypeChecker private constructor(private val signature: Signature, private val queryEngine: QueryEngine) {
 
-    override fun query(key: Key.TypeCheck): AstNode.FunctionDeclaration<TypeData> {
-        val (signature, untypedAst) = queryEngine[Key.ResolveHeader(key.name, key.type)]
-        val body = checkBlock(untypedAst.body)
+    private fun check(node: AstNode.FunctionDeclaration<Unit>): AstNode.FunctionDeclaration<TypeData> {
         return AstNode.FunctionDeclaration(
-            untypedAst.name,
-            untypedAst.parameters.map { (name, type) -> name to checkType(type) },
-            checkType(untypedAst.returnType),
-            body,
-            untypedAst.span,
+            node.name,
+            node.parameters.map { (name, type) -> name to checkType(type) },
+            checkType(node.returnType),
+            checkBlock(node.body),
+            node.span,
             TypeData.Basic(signature.type)
         )
     }
@@ -30,6 +27,24 @@ class TypeChecker(private val queryEngine: QueryEngine) :
     private fun checkStatement(node: AstNode.Statement<Unit>): AstNode.Statement<TypeData> = when (node) {
         is AstNode.Expression -> checkExpression(node)
         is AstNode.Block -> checkBlock(node)
+        is AstNode.Return -> checkReturn(node)
+    }
+
+    private fun checkReturn(node: AstNode.Return<Unit>): AstNode.Return<TypeData> {
+        val returnType = signature.type.returnType
+        val expr = if (node.expr == null) {
+            if (returnType != Type.Unit) {
+                throw AmaltheaException("Return type mismatch: expected $returnType, got amalthea::Unit", node.span)
+            }
+            null
+        } else {
+            val expr = checkExpression(node.expr)
+            if (!expr.extra.type.isAssignableTo(returnType)) {
+                throw AmaltheaException("Return type mismatch: expected $returnType, got ${expr.extra.type}", node.span)
+            }
+            expr
+        }
+        return AstNode.Return(expr, node.span, TypeData.None)
     }
 
     private fun checkExpression(node: AstNode.Expression<Unit>): AstNode.Expression<TypeData> = when (node) {
@@ -81,5 +96,15 @@ class TypeChecker(private val queryEngine: QueryEngine) :
             node.span,
             TypeData.Basic(inContext(node) { queryEngine[Key.ResolveType(node.name)] })
         )
+    }
+
+    class QueryProvider(private val queryEngine: QueryEngine) :
+        Queryable<Key.TypeCheck, AstNode.FunctionDeclaration<TypeData>> {
+        override val keyType = Key.TypeCheck::class
+
+        override fun query(key: Key.TypeCheck): AstNode.FunctionDeclaration<TypeData> {
+            val (signature, untypedAst) = queryEngine[Key.ResolveHeader(key.name, key.type)]
+            return TypeChecker(signature, queryEngine).check(untypedAst)
+        }
     }
 }

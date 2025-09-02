@@ -20,6 +20,7 @@ import java.nio.file.FileSystems
 import java.util.Collections
 import java.util.IdentityHashMap
 import kotlin.io.path.Path
+import kotlin.io.path.createDirectories
 import kotlin.io.path.walk
 import kotlin.io.path.writeBytes
 import kotlin.system.exitProcess
@@ -41,7 +42,7 @@ fun main(args: Array<String>) {
     queryEngine.register(::TypeResolver)
     queryEngine.register(::FunctionResolver)
     queryEngine.register(::HeaderResolver)
-    queryEngine.register(::TypeChecker)
+    queryEngine.register(TypeChecker::QueryProvider)
     queryEngine.register(::SourceClassResolver)
     queryEngine.register(FunctionCompiler::QueryProvider)
 
@@ -65,8 +66,8 @@ fun main(args: Array<String>) {
         for (source in codeSources) {
             val sourceFns = functions.filterValues { it == source }.keys
             if (sourceFns.isEmpty()) continue
-            var name = source.name.split('.').first() + "Am"
-            name = name[0].uppercase() + name.drop(1)
+            val pkg = queryEngine[Key.UntypedAst(source)].pkg
+            val name = (pkg + QualifiedName.className(source)).joinToString("/")
             val cw = ClassWriter(ClassWriter.COMPUTE_FRAMES or ClassWriter.COMPUTE_MAXS)
             cw.visit(
                 Opcodes.V21,
@@ -80,7 +81,9 @@ fun main(args: Array<String>) {
                 function.createIn(cw)
             }
             cw.visitEnd()
-            Path("$name.class").writeBytes(cw.toByteArray())
+            val out = currentDir.resolve("out").resolve("$name.class")
+            out.parent.createDirectories()
+            out.writeBytes(cw.toByteArray())
         }
     } catch (e: AmaltheaException) {
         System.err.println(e.report())

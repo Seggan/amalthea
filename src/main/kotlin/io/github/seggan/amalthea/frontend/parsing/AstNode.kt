@@ -62,6 +62,23 @@ sealed interface AstNode<out E> {
         }
     }
 
+    data class Return<E>(
+        val expr: Expression<E>?,
+        override val span: Span,
+        override val extra: E
+    ) : Statement<E> {
+        override fun toString() = buildString {
+            appendLine("Return:")
+            if (expr != null) {
+                appendIndented("Expression:")
+                appendIndented(expr, indent = 4)
+            } else {
+                appendIndented("Expression: <none>")
+            }
+            appendIndented("Extra: $extra")
+        }
+    }
+
     sealed interface Expression<out E> : Statement<E>
 
     data class StringLiteral<E>(val value: String, override val span: Span, override val extra: E) : Expression<E> {

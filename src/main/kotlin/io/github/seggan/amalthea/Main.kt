@@ -44,10 +44,12 @@ fun main(args: Array<String>) {
     queryEngine.register(FunctionCompiler::QueryProvider)
 
     try {
-        val compiled = queryEngine[Key.Compile(Signature(
-            QualifiedName(listOf("test"), "main"),
-            Type.Function(emptyList(), Type.Unit)
-        ))]
+        val compiled = queryEngine[Key.Compile(
+            Signature(
+                QualifiedName(listOf("test"), "main"),
+                Type.Function(emptyList(), Type.Unit)
+            )
+        )]
         val visited: MutableSet<Signature> = Collections.newSetFromMap(IdentityHashMap())
         fun gatherFunctions(fn: CompiledFunction): Set<CompiledFunction> {
             if (fn.signature in visited) return emptySet()
@@ -58,13 +60,20 @@ fun main(args: Array<String>) {
             queryEngine[Key.ResolvePackage(it.signature.name.pkg)]
         }
 
+        lateinit var mainClass: String
+
         val outPath = currentDir.resolve("out")
         outPath.deleteRecursively()
         for (source in codeSources) {
             val sourceFns = functions.filterValues { it == source }.keys
             if (sourceFns.isEmpty()) continue
+
             val pkg = queryEngine[Key.UntypedAst(source)].pkg
             val name = (pkg + QualifiedName.className(source)).joinToString("/")
+            if (sourceFns.any { it.signature.name.name == "main" }) {
+                mainClass = name.replace("/", ".")
+            }
+
             val cw = ClassWriter(ClassWriter.COMPUTE_FRAMES or ClassWriter.COMPUTE_MAXS)
             cw.visit(
                 Opcodes.V21,
@@ -83,6 +92,18 @@ fun main(args: Array<String>) {
             out.parent.createDirectories()
             out.writeBytes(cw.toByteArray())
         }
+        Runtime.getRuntime().exec(
+            arrayOf(
+                "jar",
+                "cvfe",
+                "out.jar",
+                mainClass,
+                "-C",
+                outPath.absolutePathString(),
+                "."
+            )
+        ).waitFor()
+        outPath.deleteRecursively()
     } catch (e: AmaltheaException) {
         System.err.println(e.report())
         exitProcess(1)

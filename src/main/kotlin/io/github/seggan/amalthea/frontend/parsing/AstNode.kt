@@ -147,6 +147,14 @@ sealed interface AstNode<out E> {
         }
     }
 
+    data class BooleanLiteral<E>(val value: Boolean, override val span: Span, override val extra: E) : Expression<E> {
+        override fun toString() = buildString {
+            appendLine("BooleanLiteral:")
+            appendIndented("Value: $value")
+            appendIndented("Extra: $extra")
+        }
+    }
+
     data class FunctionCall<E>(
         val name: QualifiedName,
         val arguments: List<Expression<E>>,

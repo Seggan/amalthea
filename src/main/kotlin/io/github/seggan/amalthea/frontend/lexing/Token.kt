@@ -93,16 +93,7 @@ data class Token(val type: Type, val text: String, val span: Span) {
         PACKAGE("'package'", "package"),
         FUN("'fun'", "fun"),
         VAR("'var'", "var"),
-        IF("'if'", "if"),
-        ELSE("'else'", "else"),
-        WHILE("'while'", "while"),
-        FOR("'for'", "for"),
         RETURN("'return'", "return"),
-        BREAK("'break'", "break"),
-        CONTINUE("'continue'", "continue"),
-        STRUCT("'struct'", "struct"),
-        TRAIT("'trait'", "trait"),
-        IMPL("'impl'", "impl"),
 
         ERROR("error") {
             override fun getLength(input: CharSequence): Int = 0

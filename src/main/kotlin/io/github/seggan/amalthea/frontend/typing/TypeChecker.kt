@@ -115,6 +115,7 @@ class TypeChecker private constructor(private val signature: Signature, private 
         is AstNode.FunctionCall -> checkFunctionCall(node)
         is AstNode.IntLiteral -> checkIntLiteral(node)
         is AstNode.FloatLiteral -> checkFloatLiteral(node)
+        is AstNode.BooleanLiteral -> checkBooleanLiteral(node)
         is AstNode.StringLiteral -> checkStringLiteral(node)
         is AstNode.UnaryOp -> checkUnaryOp(node)
         is AstNode.Variable -> checkVariable(node)
@@ -146,6 +147,10 @@ class TypeChecker private constructor(private val signature: Signature, private 
 
     private fun checkStringLiteral(node: AstNode.StringLiteral<Unit>): AstNode.StringLiteral<TypeData> {
         return AstNode.StringLiteral(node.value, node.span, TypeData.Basic(Type.Primitive.STRING))
+    }
+
+    private fun checkBooleanLiteral(node: AstNode.BooleanLiteral<Unit>): AstNode.BooleanLiteral<TypeData> {
+        return AstNode.BooleanLiteral(node.value, node.span, TypeData.Basic(Type.Primitive.BOOLEAN))
     }
 
     private fun checkUnaryOp(node: AstNode.UnaryOp<Unit>): AstNode.UnaryOp<TypeData> {
@@ -183,7 +188,7 @@ class TypeChecker private constructor(private val signature: Signature, private 
 
         override fun query(key: Key.TypeCheck): AstNode.FunctionDeclaration<TypeData> {
             val untypedAst = queryEngine[Key.ResolveHeader(key.signature)]
-            return TypeChecker(key.signature, queryEngine).check(untypedAst).also(::println)
+            return TypeChecker(key.signature, queryEngine).check(untypedAst)
         }
     }
 }

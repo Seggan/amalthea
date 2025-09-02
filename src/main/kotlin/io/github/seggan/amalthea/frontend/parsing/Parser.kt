@@ -234,6 +234,7 @@ class Parser private constructor(private val tokens: List<Token>) {
     private fun parsePrimary(): AstNode.Expression<Unit> = oneOf(
         ::parseNumber,
         ::parseString,
+        ::parseBoolean,
         ::parseParens,
         ::parseFunctionCall,
         ::parseVariable
@@ -277,6 +278,11 @@ class Parser private constructor(private val tokens: List<Token>) {
             }
         }
         return AstNode.StringLiteral(str, token.span, Unit)
+    }
+
+    private fun parseBoolean(): AstNode.Expression<Unit> {
+        val token = consume(TRUE, FALSE)
+        return AstNode.BooleanLiteral(token.type == TRUE, token.span, Unit)
     }
 
     private fun parseParens(): AstNode.Expression<Unit> {

@@ -19,7 +19,7 @@ class FunctionCompiler private constructor(
     private val dependencies = mutableSetOf<CompiledFunction>()
 
     private val variables = mutableMapOf<LocalVariable, Pair<Int, Label>>()
-    private var variableIndex = 0
+    private var variableIndex = if (signature.name.name == "main") 1 else 0
     private var scope = 0
 
     private fun compile(ast: AstNode.FunctionDeclaration<TypeData>) {
@@ -123,6 +123,7 @@ class FunctionCompiler private constructor(
         is AstNode.FloatLiteral -> compileFloatLiteral(node)
         is AstNode.FunctionCall -> compileFunctionCall(node)
         is AstNode.IntLiteral -> compileIntLiteral(node)
+        is AstNode.BooleanLiteral -> compileBooleanLiteral(node)
         is AstNode.StringLiteral -> compileStringLiteral(node)
         is AstNode.UnaryOp -> compileUnaryOp(node)
         is AstNode.Variable -> compileVariable(node)
@@ -147,6 +148,10 @@ class FunctionCompiler private constructor(
         if (node.extra.type == Type.Primitive.FLOAT) {
             mv.visitInsn(D2F)
         }
+    }
+
+    private fun compileBooleanLiteral(node: AstNode.BooleanLiteral<TypeData>) {
+        mv.visitInsn(if (node.value) ICONST_1 else ICONST_0)
     }
 
     private fun compileFunctionCall(node: AstNode.FunctionCall<TypeData>) {

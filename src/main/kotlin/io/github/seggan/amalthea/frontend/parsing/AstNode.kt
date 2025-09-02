@@ -62,6 +62,48 @@ sealed interface AstNode<out E> {
         }
     }
 
+    data class VariableDeclaration<E>(
+        val isMutable: Boolean,
+        val name: String,
+        val type: Type<E>?,
+        val expr: Expression<E>?,
+        override val span: Span,
+        override val extra: E
+    ) : Statement<E> {
+        override fun toString() = buildString {
+            appendLine("VariableDeclaration:")
+            appendIndented("Mutable: $isMutable")
+            appendIndented("Name: $name")
+            if (type != null) {
+                appendIndented("Type: $type")
+            } else {
+                appendIndented("Type: <inferred>")
+            }
+            if (expr != null) {
+                appendIndented("Expression:")
+                appendIndented(expr, indent = 4)
+            } else {
+                appendIndented("Expression: <none>")
+            }
+            appendIndented("Extra: $extra")
+        }
+    }
+
+    data class VariableAssignment<E>(
+        val name: String,
+        val expr: Expression<E>,
+        override val span: Span,
+        override val extra: E
+    ) : Statement<E> {
+        override fun toString() = buildString {
+            appendLine("VariableAssignment:")
+            appendIndented("Name: $name")
+            appendIndented("Expression:")
+            appendIndented(expr, indent = 4)
+            appendIndented("Extra: $extra")
+        }
+    }
+
     data class Return<E>(
         val expr: Expression<E>?,
         override val span: Span,
@@ -152,6 +194,14 @@ sealed interface AstNode<out E> {
             appendIndented("Operator: $op")
             appendIndented("Expression:")
             appendIndented(expr, indent = 4)
+            appendIndented("Extra: $extra")
+        }
+    }
+
+    data class Variable<E>(val name: String, override val span: Span, override val extra: E) : Expression<E> {
+        override fun toString() = buildString {
+            appendLine("VariableReference:")
+            appendIndented("Name: $name")
             appendIndented("Extra: $extra")
         }
     }

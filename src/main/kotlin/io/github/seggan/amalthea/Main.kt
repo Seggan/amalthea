@@ -10,7 +10,6 @@ import io.github.seggan.amalthea.frontend.QualifiedName
 import io.github.seggan.amalthea.frontend.lexing.Lexer
 import io.github.seggan.amalthea.frontend.parsing.PackageResolver
 import io.github.seggan.amalthea.frontend.parsing.Parser
-import io.github.seggan.amalthea.frontend.parsing.TypeName
 import io.github.seggan.amalthea.frontend.typing.*
 import io.github.seggan.amalthea.query.Key
 import io.github.seggan.amalthea.query.QueryEngine
@@ -19,12 +18,10 @@ import org.objectweb.asm.Opcodes
 import java.nio.file.FileSystems
 import java.util.Collections
 import java.util.IdentityHashMap
-import kotlin.io.path.Path
-import kotlin.io.path.createDirectories
-import kotlin.io.path.walk
-import kotlin.io.path.writeBytes
+import kotlin.io.path.*
 import kotlin.system.exitProcess
 
+@OptIn(ExperimentalPathApi::class)
 fun main(args: Array<String>) {
     val matchers = args.map { FileSystems.getDefault().getPathMatcher("glob:$it") }
     val currentDir = Path(System.getProperty("user.dir"))
@@ -47,13 +44,10 @@ fun main(args: Array<String>) {
     queryEngine.register(FunctionCompiler::QueryProvider)
 
     try {
-        val compiled = queryEngine[Key.Compile(
+        val compiled = queryEngine[Key.Compile(Signature(
             QualifiedName(listOf("test"), "main"),
-            TypeName.Function(
-                listOf(),
-                TypeName.Simple(Type.Unit.qName)
-            )
-        )]
+            Type.Function(emptyList(), Type.Unit)
+        ))]
         val visited: MutableSet<Signature> = Collections.newSetFromMap(IdentityHashMap())
         fun gatherFunctions(fn: CompiledFunction): Set<CompiledFunction> {
             if (fn.signature in visited) return emptySet()
@@ -63,6 +57,9 @@ fun main(args: Array<String>) {
         val functions = gatherFunctions(compiled).associateWith {
             queryEngine[Key.ResolvePackage(it.signature.name.pkg)]
         }
+
+        val outPath = currentDir.resolve("out")
+        outPath.deleteRecursively()
         for (source in codeSources) {
             val sourceFns = functions.filterValues { it == source }.keys
             if (sourceFns.isEmpty()) continue
@@ -80,8 +77,9 @@ fun main(args: Array<String>) {
             for (function in sourceFns) {
                 function.createIn(cw)
             }
+            cw.visitSource(source.name, null)
             cw.visitEnd()
-            val out = currentDir.resolve("out").resolve("$name.class")
+            val out = outPath.resolve("$name.class")
             out.parent.createDirectories()
             out.writeBytes(cw.toByteArray())
         }

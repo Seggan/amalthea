@@ -89,6 +89,14 @@ sealed interface Type {
             return returnType.isAssignableTo(other.returnType)
         }
 
+        fun canCallWith(argTypes: List<Type>): Boolean {
+            if (argTypes.size != args.size) return false
+            for (i in argTypes.indices) {
+                if (!argTypes[i].isAssignableTo(args[i])) return false
+            }
+            return true
+        }
+
         override fun toString(): String = "(${args.joinToString(", ")}) -> $returnType"
     }
 

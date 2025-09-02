@@ -83,7 +83,7 @@ class DeferredMethodVisitor {
         deferments += { visitTryCatchBlock(start, end, handler, type) }
     }
 
-    fun visitLocalVariable(name: String, descriptor: String, signature: String, start: Label, end: Label, index: Int) {
+    fun visitLocalVariable(name: String, descriptor: String, signature: String?, start: Label, end: Label, index: Int) {
         deferments += { visitLocalVariable(name, descriptor, signature, start, end, index) }
     }
 }

@@ -112,8 +112,36 @@ class Parser private constructor(private val tokens: List<Token>) {
     private fun parseStatement(): AstNode.Statement<Unit> = oneOf(
         { parseExpression().also { consume(SEMICOLON) } },
         ::parseBlock,
-        ::parseReturn
+        ::parseReturn,
+        ::parseVariableDeclaration,
+        ::parseVariableAssignment
     )
+
+    private fun parseVariableDeclaration(): AstNode.VariableDeclaration<Unit> {
+        val mut = tryConsume(MUT)
+        val varTok = consume(VAR)
+        val start = mut?.span ?: varTok.span
+        val name = parseId().text
+        val type = tryConsume(COLON)?.let { parseType() }
+        val expr = if (tryConsume(SEMICOLON) != null) {
+            null
+        } else {
+            consume(EQUAL)
+            val expr = parseExpression()
+            consume(SEMICOLON)
+            expr
+        }
+        val span = start + tokens[index - 1].span
+        return AstNode.VariableDeclaration(mut != null, name, type, expr, span, Unit)
+    }
+
+    private fun parseVariableAssignment(): AstNode.VariableAssignment<Unit> {
+        val name = parseId()
+        consume(EQUAL)
+        val expr = parseExpression()
+        val span = name.span + consume(SEMICOLON).span
+        return AstNode.VariableAssignment(name.text, expr, span, Unit)
+    }
 
     private fun parseReturn(): AstNode.Return<Unit> {
         val start = consume(RETURN).span
@@ -207,7 +235,8 @@ class Parser private constructor(private val tokens: List<Token>) {
         ::parseNumber,
         ::parseString,
         ::parseParens,
-        ::parseFunctionCall
+        ::parseFunctionCall,
+        ::parseVariable
     )
 
     private fun parseNumber(): AstNode.Expression<Unit> {
@@ -262,6 +291,11 @@ class Parser private constructor(private val tokens: List<Token>) {
         consume(OPEN_PAREN)
         val args = parseArgList(CLOSE_PAREN, ::parseExpression)
         return AstNode.FunctionCall(qName, args, span + tokens[index - 1].span, Unit)
+    }
+
+    private fun parseVariable(): AstNode.Expression<Unit> {
+        val id = parseId()
+        return AstNode.Variable(id.text, id.span, Unit)
     }
 
     private fun parseType(): AstNode.Type<Unit> {

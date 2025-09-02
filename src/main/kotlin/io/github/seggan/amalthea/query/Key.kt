@@ -21,22 +21,13 @@ sealed interface Key<V : Any> {
 
     data class ResolveType(val type: TypeName) : Key<Type>
 
-    data class ResolveHeader(
-        val name: QualifiedName,
-        val type: TypeName.Function
-    ) : Key<Pair<Signature, AstNode.FunctionDeclaration<Unit>>>
+    data class ResolveHeader(val signature: Signature) : Key<AstNode.FunctionDeclaration<Unit>>
 
     data class ResolveFunctionCall(val name: QualifiedName, val args: List<Type>) : Key<Signature>
 
-    data class TypeCheck(
-        val name: QualifiedName,
-        val type: TypeName.Function
-    ) : Key<AstNode.FunctionDeclaration<TypeData>>
+    data class TypeCheck(val signature: Signature) : Key<AstNode.FunctionDeclaration<TypeData>>
 
-    data class Compile(
-        val name: QualifiedName,
-        val type: TypeName.Function
-    ) : Key<CompiledFunction>
+    data class Compile(val signature: Signature) : Key<CompiledFunction>
 
     data class RevolveSourceClass(val source: String) : Key<AsmType>
 }

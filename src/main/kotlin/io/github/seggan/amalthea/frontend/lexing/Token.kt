@@ -84,13 +84,14 @@ data class Token(val type: Type, val text: String, val span: Span) {
         ARROW("'->'", "->"),
         TILDE("'~'", "~"),
 
-        NULL("'null'", "null"),
         TRUE("'true'", "true"),
         FALSE("'false'", "false"),
 
+        MUT("'mut'", "mut"),
+        OWN("'own'", "own"),
+
         PACKAGE("'package'", "package"),
         FUN("'fun'", "fun"),
-        VAL("'val'", "val"),
         VAR("'var'", "var"),
         IF("'if'", "if"),
         ELSE("'else'", "else"),

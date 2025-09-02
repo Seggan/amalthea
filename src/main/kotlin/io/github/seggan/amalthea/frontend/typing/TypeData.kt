@@ -13,4 +13,12 @@ sealed interface TypeData {
     data class FunctionCall(val signature: Signature) : TypeData {
         override val type = signature.type.returnType
     }
+
+    data class Variable(val variable: LocalVariable) : TypeData {
+        override val type = variable.type
+    }
+
+    data class Function(val signature: Signature, val parameters: List<LocalVariable>) : TypeData {
+        override val type = signature.type
+    }
 }

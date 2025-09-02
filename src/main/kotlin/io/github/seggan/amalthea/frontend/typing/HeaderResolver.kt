@@ -6,26 +6,26 @@ import io.github.seggan.amalthea.query.Key
 import io.github.seggan.amalthea.query.QueryEngine
 import io.github.seggan.amalthea.query.Queryable
 
-class HeaderResolver(private val queryEngine: QueryEngine) : Queryable<Key.ResolveHeader, Pair<Signature, AstNode.FunctionDeclaration<Unit>>> {
+class HeaderResolver(private val queryEngine: QueryEngine) : Queryable<Key.ResolveHeader, AstNode.FunctionDeclaration<Unit>> {
     override val keyType = Key.ResolveHeader::class
 
-    override fun query(key: Key.ResolveHeader): Pair<Signature, AstNode.FunctionDeclaration<Unit>> {
-        val source = queryEngine[Key.ResolvePackage(key.name.pkg)]
+    override fun query(key: Key.ResolveHeader): AstNode.FunctionDeclaration<Unit> {
+        val signature = key.signature
+        val source = queryEngine[Key.ResolvePackage(signature.name.pkg)]
         val untypedAst = queryEngine[Key.UntypedAst(source)]
         for (function in untypedAst.declarations) {
-            if (function.name == key.name.name && function.parameters.map { it.second.name } == key.type.args) {
-                if (!checkReturns(function)) {
-                    throw AmaltheaException("Function ${key.name} does not return on all paths", function.span)
-                }
+            if (function.name == signature.name.name) {
                 val paramTypes = function.parameters.map { (_, type) ->
                     queryEngine[Key.ResolveType(type.name)]
                 }
-                val returnType = queryEngine[Key.ResolveType(function.returnType.name)]
-                val type = Type.Function(paramTypes, returnType)
-                return Signature(key.name, type) to function
+                if (paramTypes != signature.type.args) continue
+                if (!checkReturns(function)) {
+                    throw AmaltheaException("Function $signature does not return on all paths", function.span)
+                }
+                return function
             }
         }
-        throw AmaltheaException("Could not resolve header: ${key.type}", mutableListOf())
+        throw AmaltheaException("Could not resolve header: $signature", mutableListOf())
     }
 
     private fun checkReturns(node: AstNode<*>): Boolean = when (node) {
@@ -35,5 +35,7 @@ class HeaderResolver(private val queryEngine: QueryEngine) : Queryable<Key.Resol
         is AstNode.Expression -> false
         is AstNode.Return -> true
         is AstNode.Type -> false
+        is AstNode.VariableAssignment -> false
+        is AstNode.VariableDeclaration -> false
     }
 }

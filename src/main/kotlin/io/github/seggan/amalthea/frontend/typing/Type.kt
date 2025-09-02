@@ -20,12 +20,12 @@ sealed interface Type {
     enum class Primitive(
         name: String,
         override val jvmType: String,
-        private vararg val assginable: Type
+        private val assginable: Type? = null
     ) : Type {
         DOUBLE("Double", "D"),
         FLOAT("Float", "F", DOUBLE),
-        LONG("Long", "J", DOUBLE),
-        INT("Int", "I", LONG, FLOAT),
+        LONG("Long", "J"),
+        INT("Int", "I", LONG),
         SHORT("Short", "S", INT),
         BYTE("Byte", "B", SHORT),
         BOOLEAN("Boolean", "Z"),
@@ -36,7 +36,7 @@ sealed interface Type {
         override val qName = QualifiedName.amalthea(name)
 
         override fun isAssignableTo(other: Type): Boolean {
-            return super.isAssignableTo(other) || assginable.any { it.isAssignableTo(other) }
+            return super.isAssignableTo(other) || assginable?.isAssignableTo(other) == true
         }
 
         override fun toString(): String = qName.toString()
@@ -94,3 +94,9 @@ sealed interface Type {
 
 val Type.asmType: AsmType
     get() = AsmType.getType(jvmType)
+
+fun getCommonSupertype(type: Type, other: Type): Type {
+    if (type.isAssignableTo(other)) return other
+    if (other.isAssignableTo(type)) return type
+    throw IllegalArgumentException("No common supertype between $type and $other")
+}

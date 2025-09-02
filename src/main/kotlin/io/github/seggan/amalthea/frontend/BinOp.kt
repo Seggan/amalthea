@@ -1,43 +1,64 @@
 package io.github.seggan.amalthea.frontend
 
+import io.github.seggan.amalthea.backend.compilation.DeferredMethodVisitor
+import io.github.seggan.amalthea.backend.compilation.promoteSmallToInt
 import io.github.seggan.amalthea.frontend.lexing.Token
 import io.github.seggan.amalthea.frontend.lexing.Token.Type.*
 import io.github.seggan.amalthea.frontend.typing.Type
+import io.github.seggan.amalthea.frontend.typing.asmType
+import io.github.seggan.amalthea.frontend.typing.getCommonSupertype
+import org.objectweb.asm.Opcodes.*
 
 sealed class BinOp(val tokenType: Token.Type) {
 
     abstract fun checkType(left: Type, right: Type): Type
 
-    sealed class NumberOp(tokenType: Token.Type) : BinOp(tokenType) {
+    open fun compile(mv: DeferredMethodVisitor, left: Type, right: Type) {
+        TODO()
+    }
+
+    sealed class NumberOp(tokenType: Token.Type, private val op: Int) : BinOp(tokenType) {
         override fun checkType(left: Type, right: Type): Type {
-            if (left.isAssignableTo(Type.Primitive.DOUBLE) && right.isAssignableTo(Type.Primitive.DOUBLE)) {
-                return if (left.isAssignableTo(right)) right else left
+            if (
+                (left.isAssignableTo(Type.Primitive.LONG) && right.isAssignableTo(Type.Primitive.LONG)) ||
+                (left.isAssignableTo(Type.Primitive.DOUBLE) && right.isAssignableTo(Type.Primitive.DOUBLE))
+            ) {
+                return getCommonSupertype(left, right)
             }
             throw AmaltheaException("Cannot perform ${this.tokenType} on $left and $right", mutableListOf())
         }
+
+        override fun compile(mv: DeferredMethodVisitor, left: Type, right: Type) {
+            val supertype = getCommonSupertype(left, right).promoteSmallToInt()
+            mv.visitInsn(supertype.asmType.getOpcode(op))
+        }
     }
 
-    data object Add : NumberOp(PLUS)
-    data object Sub : NumberOp(MINUS)
-    data object Mul : NumberOp(STAR)
-    data object Div : NumberOp(SLASH)
-    data object Mod : NumberOp(PERCENT)
+    data object Add : NumberOp(PLUS, IADD)
+    data object Sub : NumberOp(MINUS, ISUB)
+    data object Mul : NumberOp(STAR, IMUL)
+    data object Div : NumberOp(SLASH, IDIV)
+    data object Mod : NumberOp(PERCENT, IREM)
 
-    sealed class BitOp(tokenType: Token.Type) : BinOp(tokenType) {
+    sealed class BitOp(tokenType: Token.Type, private val op: Int) : BinOp(tokenType) {
         override fun checkType(left: Type, right: Type): Type {
             if (left.isAssignableTo(Type.Primitive.LONG) && right.isAssignableTo(Type.Primitive.LONG)) {
-                return if (left.isAssignableTo(right)) right else left
+                return getCommonSupertype(left, right)
             }
             throw AmaltheaException("Cannot perform ${this.tokenType} on $left and $right", mutableListOf())
         }
+
+        override fun compile(mv: DeferredMethodVisitor, left: Type, right: Type) {
+            mv.visitInsn(getCommonSupertype(left, right).asmType.getOpcode(op))
+        }
     }
 
-    data object ShiftLeft : BitOp(DOUBLE_LESS)
-    data object ShiftRight : BitOp(DOUBLE_GREATER)
-    data object UShiftRight : BitOp(TRIPLE_GREATER)
-    data object BitAnd : BitOp(AMPERSAND)
-    data object BitOr : BitOp(PIPE)
-    data object BitXor : BitOp(CARET)
+    data object ShiftLeft : BitOp(DOUBLE_LESS, ISHL)
+    data object ShiftRight : BitOp(DOUBLE_GREATER, ISHR)
+    data object UShiftRight : BitOp(TRIPLE_GREATER, IUSHR)
+    data object BitAnd : BitOp(AMPERSAND, IAND)
+    data object BitOr : BitOp(PIPE, IOR)
+    data object BitXor : BitOp(CARET, IXOR)
 
     sealed class EqCmpOp(tokenType: Token.Type) : BinOp(tokenType) {
         override fun checkType(left: Type, right: Type): Type {

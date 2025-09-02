@@ -57,7 +57,8 @@ class TypeChecker(private val queryEngine: QueryEngine) :
     }
 
     private fun checkIntLiteral(node: AstNode.IntLiteral<Unit>): AstNode.IntLiteral<TypeData> {
-        return AstNode.IntLiteral(node.value, node.span, TypeData.Basic(Type.Primitive.LONG))
+        val type = if (node.value in Int.MIN_VALUE..Int.MAX_VALUE) Type.Primitive.INT else Type.Primitive.LONG
+        return AstNode.IntLiteral(node.value, node.span, TypeData.Basic(type))
     }
 
     private fun checkFloatLiteral(node: AstNode.FloatLiteral<Unit>): AstNode.FloatLiteral<TypeData> {

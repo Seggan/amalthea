@@ -4,7 +4,6 @@ import io.github.seggan.amalthea.backend.compilation.DeferredMethodVisitor
 import io.github.seggan.amalthea.backend.compilation.promoteSmallToInt
 import io.github.seggan.amalthea.frontend.typing.Type
 import io.github.seggan.amalthea.frontend.typing.asmType
-import org.objectweb.asm.Label
 import org.objectweb.asm.Opcodes
 
 enum class UnOp {
@@ -29,14 +28,8 @@ enum class UnOp {
         }
 
         override fun compile(mv: DeferredMethodVisitor, type: Type) {
-            val labelTrue = Label()
-            val labelEnd = Label()
-            mv.visitJumpInsn(Opcodes.IFEQ, labelTrue)
-            mv.visitInsn(Opcodes.ICONST_0)
-            mv.visitJumpInsn(Opcodes.GOTO, labelEnd)
-            mv.visitLabel(labelTrue)
             mv.visitInsn(Opcodes.ICONST_1)
-            mv.visitLabel(labelEnd)
+            mv.visitInsn(Opcodes.IXOR)
         }
     },
     PLUS {

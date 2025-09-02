@@ -18,13 +18,13 @@ class QueryEngine(val sources: List<CodeSource>) {
     private var logDepth = 0
 
     operator fun <V : Any> get(key: Key<V>): V {
+        println("${"  ".repeat(logDepth++)}$key")
         @Suppress("UNCHECKED_CAST")
-        return queryCache.getOrPut(key) {
-            println("${"  ".repeat(logDepth++)}$key")
+        val result = queryCache.getOrPut(key) {
             val queryable = queryables[key::class] ?: error("No queryable registered for key ${key::class}")
-            val result = (queryable as Queryable<Key<V>, V>).query(key)
-            logDepth--
-            result
+            (queryable as Queryable<Key<V>, V>).query(key)
         } as V
+        logDepth--
+        return result
     }
 }

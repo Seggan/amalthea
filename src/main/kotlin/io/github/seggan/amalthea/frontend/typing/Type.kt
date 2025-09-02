@@ -2,11 +2,16 @@ package io.github.seggan.amalthea.frontend.typing
 
 import io.github.seggan.amalthea.backend.compilation.AsmType
 import io.github.seggan.amalthea.frontend.QualifiedName
+import io.github.seggan.amalthea.frontend.parsing.TypeName
 
 sealed interface Type {
 
     val qName: QualifiedName
     val jvmType: String
+
+    fun asTypeName(): TypeName {
+        return TypeName.Simple(qName)
+    }
 
     fun isAssignableTo(other: Type): Boolean {
         return this == other || other == Any
@@ -65,6 +70,10 @@ sealed interface Type {
             get() = throw IllegalStateException("Function types do not have a qualified name")
 
         override val jvmType = "(${args.joinToString("") { it.jvmType }})${returnType.jvmType}"
+
+        override fun asTypeName(): TypeName.Function {
+            return TypeName.Function(args.map { it.asTypeName() }, returnType.asTypeName())
+        }
 
         override fun isAssignableTo(other: Type): Boolean {
             if (other !is Function) return super.isAssignableTo(other)

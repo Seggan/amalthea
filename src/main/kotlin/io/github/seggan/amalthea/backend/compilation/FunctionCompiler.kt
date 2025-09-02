@@ -45,11 +45,12 @@ class FunctionCompiler private constructor(
         is AstNode.FloatLiteral -> TODO()
         is AstNode.FunctionCall -> compileFunctionCall(node)
         is AstNode.IntLiteral -> TODO()
-        is AstNode.StringLiteral -> TODO()
+        is AstNode.StringLiteral -> compileStringLiteral(node)
         is AstNode.UnaryOp -> TODO()
     }
 
     private fun compileFunctionCall(node: AstNode.FunctionCall<TypeData>) {
+        node.arguments.forEach(::compileExpression)
         val callData = node.extra as TypeData.FunctionCall
         for (intrinsic in Intrinsics.entries) {
             if (intrinsic.signature == callData.signature) {
@@ -58,7 +59,12 @@ class FunctionCompiler private constructor(
             }
         }
         val (name, type) = callData.signature
-        val compiledFunction = TODO()
+        val compiledFunction = queryEngine[Key.Compile(name, type.asTypeName())]
+        TODO()
+    }
+
+    private fun compileStringLiteral(node: AstNode.StringLiteral<TypeData>) {
+        mv.visitLdcInsn(node.value)
     }
 
     class QueryProvider(private val queryEngine: QueryEngine) : Queryable<Key.Compile, CompiledFunction> {

@@ -13,7 +13,7 @@ class CompiledFunction(
         val mv = cv.visitMethod(
             Opcodes.ACC_PUBLIC or Opcodes.ACC_STATIC,
             signature.name.name,
-            signature.type.jvmType,
+            if (signature.name.name == "main") "([Ljava/lang/String;)V" else signature.type.jvmType,
             null,
             null
         )

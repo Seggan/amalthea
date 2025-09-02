@@ -1,13 +1,12 @@
 package io.github.seggan.amalthea.frontend
 
-import io.github.seggan.amalthea.backend.compilation.AsmType
-import io.github.seggan.amalthea.backend.compilation.DeferredMethodVisitor
-import io.github.seggan.amalthea.backend.compilation.asmDescriptor
-import io.github.seggan.amalthea.backend.compilation.asmTypeName
+import io.github.seggan.amalthea.backend.compilation.*
 import io.github.seggan.amalthea.frontend.typing.Signature
 import io.github.seggan.amalthea.frontend.typing.Type
 import org.objectweb.asm.Opcodes
+import java.io.InputStream
 import java.io.PrintStream
+import java.util.Scanner
 
 enum class Intrinsics(val signature: Signature) {
     PRINTLN(Signature(QualifiedName(listOf(), "println"), Type.Function(listOf(Type.Any), Type.Unit))) {
@@ -18,11 +17,38 @@ enum class Intrinsics(val signature: Signature) {
                 Opcodes.INVOKEVIRTUAL,
                 asmTypeName<PrintStream>(),
                 "println",
-                AsmType.getMethodDescriptor(AsmType.VOID_TYPE, AsmType.getType(Any::class.java)),
+                AsmType.getMethodDescriptor(AsmType.VOID_TYPE, asmType<Any>()),
                 false
             )
         }
-    };
+    },
+    READLN(Signature(QualifiedName(listOf(), "readln"), Type.Function(emptyList(), Type.Primitive.STRING))) {
+        override fun compile(mv: DeferredMethodVisitor) {
+            mv.visitTypeInsn(Opcodes.NEW, asmTypeName<Scanner>())
+            mv.visitInsn(Opcodes.DUP)
+            mv.visitFieldInsn(
+                Opcodes.GETSTATIC,
+                asmTypeName<System>(),
+                "in",
+                asmDescriptor<InputStream>()
+            )
+            mv.visitMethodInsn(
+                Opcodes.INVOKESPECIAL,
+                asmTypeName<Scanner>(),
+                "<init>",
+                AsmType.getMethodDescriptor(AsmType.VOID_TYPE, asmType<InputStream>()),
+                false
+            )
+            mv.visitMethodInsn(
+                Opcodes.INVOKEVIRTUAL,
+                asmTypeName<Scanner>(),
+                "nextLine",
+                AsmType.getMethodDescriptor(asmType<String>()),
+                false
+            )
+        }
+    }
+    ;
 
     abstract fun compile(mv: DeferredMethodVisitor)
 }

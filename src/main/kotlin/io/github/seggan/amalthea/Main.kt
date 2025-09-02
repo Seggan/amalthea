@@ -95,7 +95,7 @@ fun main(args: Array<String>) {
         Runtime.getRuntime().exec(
             arrayOf(
                 "jar",
-                "cvfe",
+                "cfe",
                 "out.jar",
                 mainClass,
                 "-C",

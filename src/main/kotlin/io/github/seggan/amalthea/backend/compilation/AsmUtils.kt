@@ -4,6 +4,7 @@ import io.github.seggan.amalthea.frontend.typing.Type
 
 typealias AsmType = org.objectweb.asm.Type
 
+inline fun <reified T> asmType(): AsmType = AsmType.getType(T::class.java)
 inline fun <reified T> asmTypeName(): String = AsmType.getInternalName(T::class.java)
 inline fun <reified T> asmDescriptor(): String = AsmType.getDescriptor(T::class.java)
 

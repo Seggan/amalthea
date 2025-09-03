@@ -11,7 +11,7 @@ import io.github.seggan.amalthea.frontend.typing.Signature
 import io.github.seggan.amalthea.frontend.typing.Type
 import io.github.seggan.amalthea.frontend.typing.TypeData
 
-sealed interface Key<V : Any> {
+sealed interface Key<V> {
 
     data class Tokens(val source: CodeSource) : Key<List<Token>>
 
@@ -19,15 +19,25 @@ sealed interface Key<V : Any> {
 
     data class ResolvePackage(val pkg: List<String>) : Key<CodeSource>
 
-    data class ResolveType(val type: TypeName) : Key<Type>
+    data class FindImport(val name: String, val context: CodeSource) : Key<QualifiedName>
 
-    data class ResolveHeader(val signature: Signature) : Key<AstNode.FunctionDeclaration<Unit>>
+    data class ResolveType(val type: TypeName, val context: CodeSource) : Key<Type>
 
-    data class ResolveFunctionCall(val name: QualifiedName, val args: List<Type>) : Key<Signature>
+    data class ResolveHeader(val pkg: List<String>, val function: AstNode.FunctionDeclaration<Unit>) : Key<Signature> {
+        override fun toString(): String {
+            return "ResolveHeader(pkg=$pkg, function=${function.name}(${
+                function.parameters.joinToString { (name, type) -> "$name: $type" }
+            }): ${function.returnType})"
+        }
+    }
+
+    data class FindFunctionBody(val signature: Signature) : Key<AstNode.FunctionDeclaration<Unit>>
+
+    data class ResolveFunctionCall(val name: QualifiedName, val args: List<Type>, val context: CodeSource) : Key<Signature>
 
     data class TypeCheck(val signature: Signature) : Key<AstNode.FunctionDeclaration<TypeData>>
 
     data class Compile(val signature: Signature) : Key<CompiledFunction>
 
-    data class RevolveSourceClass(val source: String) : Key<AsmType>
+    data class ComputeSourceClass(val source: String) : Key<AsmType>
 }

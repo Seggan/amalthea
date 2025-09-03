@@ -9,7 +9,7 @@ import java.io.PrintStream
 import java.util.Scanner
 
 enum class Intrinsics(val signature: Signature) {
-    PRINTLN(Signature(QualifiedName(listOf(), "println"), Type.Function(listOf(Type.Any), Type.Unit))) {
+    PRINTLN(Signature(QualifiedName.amalthea("println"), Type.Function(listOf(Type.Any), Type.Unit))) {
         override fun compile(mv: DeferredMethodVisitor) {
             mv.visitFieldInsn(Opcodes.GETSTATIC, asmTypeName<System>(), "out", asmDescriptor<PrintStream>())
             mv.visitInsn(Opcodes.SWAP)
@@ -22,7 +22,7 @@ enum class Intrinsics(val signature: Signature) {
             )
         }
     },
-    READLN(Signature(QualifiedName(listOf(), "readln"), Type.Function(emptyList(), Type.Primitive.STRING))) {
+    READLN(Signature(QualifiedName.amalthea("readln"), Type.Function(emptyList(), Type.Primitive.STRING))) {
         override fun compile(mv: DeferredMethodVisitor) {
             mv.visitTypeInsn(Opcodes.NEW, asmTypeName<Scanner>())
             mv.visitInsn(Opcodes.DUP)

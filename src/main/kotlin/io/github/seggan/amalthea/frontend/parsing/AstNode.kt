@@ -8,6 +8,7 @@ sealed interface AstNode<out E> {
 
     data class File<E>(
         val pkg: List<String>,
+        val imports: List<Import<E>>,
         val declarations: List<FunctionDeclaration<E>>,
         override val span: Span,
         override val extra: E
@@ -15,10 +16,26 @@ sealed interface AstNode<out E> {
         override fun toString() = buildString {
             appendLine("File:")
             appendIndented("Package: ${pkg.joinToString("::")}")
+            appendIndented("Imports:")
+            for (imp in imports) {
+                appendIndented(imp, indent = 4)
+            }
             appendIndented("Functions:")
             for (decl in declarations) {
                 appendIndented(decl, indent = 4)
             }
+            appendIndented("Extra: $extra")
+        }
+    }
+
+    data class Import<E>(
+        val name: QualifiedName,
+        override val span: Span,
+        override val extra: E
+    ) : AstNode<E> {
+        override fun toString() = buildString {
+            appendLine("Import:")
+            appendIndented("Name: $name")
             appendIndented("Extra: $extra")
         }
     }

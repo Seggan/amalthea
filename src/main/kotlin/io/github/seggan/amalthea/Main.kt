@@ -1,6 +1,6 @@
 package io.github.seggan.amalthea
 
-import io.github.seggan.amalthea.backend.SourceClassResolver
+import io.github.seggan.amalthea.backend.SourceClassComputer
 import io.github.seggan.amalthea.backend.compilation.CompiledFunction
 import io.github.seggan.amalthea.backend.compilation.FunctionCompiler
 import io.github.seggan.amalthea.backend.compilation.asmTypeName
@@ -37,10 +37,12 @@ fun main(args: Array<String>) {
     queryEngine.register(Parser::QueryProvider)
     queryEngine.register(::PackageResolver)
     queryEngine.register(::TypeResolver)
-    queryEngine.register(::FunctionResolver)
+    queryEngine.register(::ImportResolver)
+    queryEngine.register(::FunctionCallResolver)
+    queryEngine.register(::FunctionFinder)
     queryEngine.register(::HeaderResolver)
     queryEngine.register(TypeChecker::QueryProvider)
-    queryEngine.register(::SourceClassResolver)
+    queryEngine.register(::SourceClassComputer)
     queryEngine.register(FunctionCompiler::QueryProvider)
 
     try {

@@ -6,7 +6,7 @@ import kotlin.reflect.KClass
 class QueryEngine(val sources: List<CodeSource>) {
 
     private val queryables = mutableMapOf<KClass<*>, Queryable<*, *>>()
-    private val queryCache = mutableMapOf<Key<*>, Any>()
+    private val queryCache = mutableMapOf<Key<*>, Any?>()
 
     fun register(constructor: (QueryEngine) -> Queryable<*, *>) {
         val queryable = constructor(this)
@@ -17,7 +17,7 @@ class QueryEngine(val sources: List<CodeSource>) {
 
     private var logDepth = 0
 
-    operator fun <V : Any> get(key: Key<V>): V {
+    operator fun <V> get(key: Key<V>): V {
         println("${"  ".repeat(logDepth++)}$key")
         @Suppress("UNCHECKED_CAST")
         val result = queryCache.getOrPut(key) {

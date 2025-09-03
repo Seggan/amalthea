@@ -131,7 +131,7 @@ class TypeChecker private constructor(private val signature: Signature, private 
     private fun checkFunctionCall(node: AstNode.FunctionCall<Unit>): AstNode.FunctionCall<TypeData> {
         val arguments = node.arguments.map(::checkExpression)
         val function = inContext(node) {
-            queryEngine[Key.ResolveFunctionCall(node.name, arguments.map { it.extra.type })]
+            queryEngine[Key.ResolveFunctionCall(node.name, arguments.map { it.extra.type }, node.span.source)]
         }
         return AstNode.FunctionCall(node.name, arguments, node.span, TypeData.FunctionCall(function))
     }
@@ -171,7 +171,7 @@ class TypeChecker private constructor(private val signature: Signature, private 
         return AstNode.Type(
             node.name,
             node.span,
-            TypeData.Basic(inContext(node) { queryEngine[Key.ResolveType(node.name)] })
+            TypeData.Basic(inContext(node) { queryEngine[Key.ResolveType(node.name, node.span.source)] })
         )
     }
 
@@ -187,7 +187,7 @@ class TypeChecker private constructor(private val signature: Signature, private 
         override val keyType = Key.TypeCheck::class
 
         override fun query(key: Key.TypeCheck): AstNode.FunctionDeclaration<TypeData> {
-            val untypedAst = queryEngine[Key.ResolveHeader(key.signature)]
+            val untypedAst = queryEngine[Key.FindFunctionBody(key.signature)]
             return TypeChecker(key.signature, queryEngine).check(untypedAst)
         }
     }

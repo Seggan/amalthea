@@ -81,7 +81,6 @@ data class Token(val type: Type, val text: String, val span: Span) {
         COLON("':'", ":"),
         DOUBLE_COLON("'::'", "::"),
         SEMICOLON("';'", ";"),
-        ARROW("'->'", "->"),
         TILDE("'~'", "~"),
 
         TRUE("'true'", "true"),
@@ -91,6 +90,8 @@ data class Token(val type: Type, val text: String, val span: Span) {
         OWN("'own'", "own"),
 
         PACKAGE("'package'", "package"),
+        IMPORT("'import'", "import"),
+
         FUN("'fun'", "fun"),
         VAR("'var'", "var"),
         RETURN("'return'", "return"),

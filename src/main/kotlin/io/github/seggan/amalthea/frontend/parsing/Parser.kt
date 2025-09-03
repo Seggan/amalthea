@@ -17,7 +17,11 @@ class Parser private constructor(private val tokens: List<Token>) {
         get() = index >= tokens.size
 
     private fun parse(): AstNode.File<Unit> {
-        val (pkg, _) = parsePackage()
+        val pkg = parsePackage()
+        val imports = mutableListOf<AstNode.Import<Unit>>()
+        while (true) {
+            imports.add(parseImport() ?: break)
+        }
         val functions = mutableListOf<AstNode.FunctionDeclaration<Unit>>()
         while (index < tokens.size) {
             try {
@@ -37,27 +41,29 @@ class Parser private constructor(private val tokens: List<Token>) {
         } else {
             tokens.first().span + tokens.last().span
         }
-        return AstNode.File(pkg, functions, span, Unit)
+        return AstNode.File(pkg, imports, functions, span, Unit)
     }
 
-    private fun parsePackage(): Pair<List<String>, Span> {
+    private fun parsePackage(): List<String> {
         val pkg = mutableListOf<String>()
-        var span: Span? = null
         consume(PACKAGE)
         while (true) {
             val id = parseId()
-            if (span == null) {
-                span = id.span
-            } else {
-                span += id.span
-            }
             pkg.add(id.text)
             if (tryConsume(SEMICOLON) != null) {
                 break
             }
             consume(DOUBLE_COLON)
         }
-        return pkg to span
+        return pkg
+    }
+
+    private fun parseImport(): AstNode.Import<Unit>? {
+        val start = tryConsume(IMPORT)?.span ?: return null
+        val (qName, span) = parseQualifiedName()
+        val fullSpan = start + span
+        consume(SEMICOLON)
+        return AstNode.Import(qName, fullSpan, Unit)
     }
 
     private fun parseFunction(): AstNode.FunctionDeclaration<Unit> {

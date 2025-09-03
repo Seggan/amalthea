@@ -1,6 +1,6 @@
 package io.github.seggan.amalthea.frontend
 
-import io.github.seggan.amalthea.backend.compilation.*
+import io.github.seggan.amalthea.backend.*
 import io.github.seggan.amalthea.frontend.typing.Signature
 import io.github.seggan.amalthea.frontend.typing.Type
 import org.objectweb.asm.Opcodes

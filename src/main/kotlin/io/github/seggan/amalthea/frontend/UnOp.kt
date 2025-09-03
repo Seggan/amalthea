@@ -1,7 +1,7 @@
 package io.github.seggan.amalthea.frontend
 
-import io.github.seggan.amalthea.backend.compilation.DeferredMethodVisitor
-import io.github.seggan.amalthea.backend.compilation.promoteSmallToInt
+import io.github.seggan.amalthea.backend.DeferredMethodVisitor
+import io.github.seggan.amalthea.backend.promoteSmallToInt
 import io.github.seggan.amalthea.frontend.typing.Type
 import io.github.seggan.amalthea.frontend.typing.asmType
 import org.objectweb.asm.Opcodes

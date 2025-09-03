@@ -1,4 +1,4 @@
-package io.github.seggan.amalthea.backend.compilation
+package io.github.seggan.amalthea.backend
 
 import io.github.seggan.amalthea.frontend.typing.Type
 

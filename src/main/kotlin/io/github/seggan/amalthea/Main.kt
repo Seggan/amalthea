@@ -1,9 +1,8 @@
 package io.github.seggan.amalthea
 
-import io.github.seggan.amalthea.backend.SourceClassComputer
-import io.github.seggan.amalthea.backend.compilation.CompiledFunction
-import io.github.seggan.amalthea.backend.compilation.FunctionCompiler
-import io.github.seggan.amalthea.backend.compilation.asmTypeName
+import io.github.seggan.amalthea.backend.CompiledFunction
+import io.github.seggan.amalthea.backend.FunctionCompiler
+import io.github.seggan.amalthea.backend.asmTypeName
 import io.github.seggan.amalthea.frontend.AmaltheaException
 import io.github.seggan.amalthea.frontend.CodeSource
 import io.github.seggan.amalthea.frontend.QualifiedName
@@ -42,7 +41,6 @@ fun main(args: Array<String>) {
     queryEngine.register(::FunctionFinder)
     queryEngine.register(::HeaderResolver)
     queryEngine.register(TypeChecker::QueryProvider)
-    queryEngine.register(::SourceClassComputer)
     queryEngine.register(FunctionCompiler::QueryProvider)
 
     try {

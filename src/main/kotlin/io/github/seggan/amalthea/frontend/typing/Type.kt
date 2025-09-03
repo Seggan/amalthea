@@ -1,6 +1,6 @@
 package io.github.seggan.amalthea.frontend.typing
 
-import io.github.seggan.amalthea.backend.compilation.AsmType
+import io.github.seggan.amalthea.backend.AsmType
 import io.github.seggan.amalthea.frontend.QualifiedName
 import io.github.seggan.amalthea.frontend.parsing.TypeName
 
@@ -87,14 +87,6 @@ sealed interface Type {
                 if (!args[i].isAssignableTo(other.args[i])) return false
             }
             return returnType.isAssignableTo(other.returnType)
-        }
-
-        fun canCallWith(argTypes: List<Type>): Boolean {
-            if (argTypes.size != args.size) return false
-            for (i in argTypes.indices) {
-                if (!argTypes[i].isAssignableTo(args[i])) return false
-            }
-            return true
         }
 
         override fun toString(): String = "(${args.joinToString(", ")}) -> $returnType"

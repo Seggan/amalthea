@@ -1,7 +1,6 @@
 package io.github.seggan.amalthea.query
 
-import io.github.seggan.amalthea.backend.compilation.AsmType
-import io.github.seggan.amalthea.backend.compilation.CompiledFunction
+import io.github.seggan.amalthea.backend.CompiledFunction
 import io.github.seggan.amalthea.frontend.CodeSource
 import io.github.seggan.amalthea.frontend.QualifiedName
 import io.github.seggan.amalthea.frontend.lexing.Token
@@ -38,6 +37,4 @@ sealed interface Key<V> {
     data class TypeCheck(val signature: Signature) : Key<AstNode.FunctionDeclaration<TypeData>>
 
     data class Compile(val signature: Signature) : Key<CompiledFunction>
-
-    data class ComputeSourceClass(val source: String) : Key<AsmType>
 }

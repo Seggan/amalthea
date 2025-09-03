@@ -1,9 +1,10 @@
-package io.github.seggan.amalthea.backend.compilation
+package io.github.seggan.amalthea.backend
 
 import org.objectweb.asm.Handle
 import org.objectweb.asm.Label
 import org.objectweb.asm.MethodVisitor
 
+@Suppress("unused")
 class DeferredMethodVisitor {
 
     private val deferments = mutableListOf<MethodVisitor.() -> Unit>()

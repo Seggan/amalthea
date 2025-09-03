@@ -8,7 +8,7 @@ data class QualifiedName(val pkg: List<String>, val name: String) {
     override fun toString() = (pkg + name).joinToString("::")
 
     companion object {
-        fun amalthea(name: String) = QualifiedName(listOf("amalthea"), name)
+        fun amalthea(name: String) = QualifiedName(listOf("std"), name)
 
         fun className(source: CodeSource): String =
             source.name.split('.').first().replaceFirstChar(Char::uppercase) + "Am"

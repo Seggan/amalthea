@@ -185,6 +185,45 @@ sealed class BinOp(val tokenType: Token.Type) {
         }
     }
 
-    data object And : AndOrOp(DOUBLE_AMPERSAND)
-    data object Or : AndOrOp(DOUBLE_PIPE)
+    data object And : AndOrOp(DOUBLE_AMPERSAND) {
+        override fun compile(
+            compiler: FunctionCompiler,
+            left: AstNode.Expression<TypeData>,
+            right: AstNode.Expression<TypeData>
+        ) {
+            val mv = compiler.mv
+            val isFalse = Label()
+            val end = Label()
+            compiler.compileExpression(left)
+            mv.visitJumpInsn(IFEQ, isFalse)
+            compiler.compileExpression(right)
+            mv.visitJumpInsn(IFEQ, isFalse)
+            mv.visitInsn(ICONST_1)
+            mv.visitJumpInsn(GOTO, end)
+            mv.visitLabel(isFalse)
+            mv.visitInsn(ICONST_0)
+            mv.visitLabel(end)
+        }
+    }
+
+    data object Or : AndOrOp(DOUBLE_PIPE)  {
+        override fun compile(
+            compiler: FunctionCompiler,
+            left: AstNode.Expression<TypeData>,
+            right: AstNode.Expression<TypeData>
+        ) {
+            val mv = compiler.mv
+            val isTrue = Label()
+            val end = Label()
+            compiler.compileExpression(left)
+            mv.visitJumpInsn(IFNE, isTrue)
+            compiler.compileExpression(right)
+            mv.visitJumpInsn(IFNE, isTrue)
+            mv.visitInsn(ICONST_0)
+            mv.visitJumpInsn(GOTO, end)
+            mv.visitLabel(isTrue)
+            mv.visitInsn(ICONST_1)
+            mv.visitLabel(end)
+        }
+    }
 }

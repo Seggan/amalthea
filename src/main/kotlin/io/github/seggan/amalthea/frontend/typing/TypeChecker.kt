@@ -36,7 +36,7 @@ class TypeChecker private constructor(private val signature: Signature, private 
     }
 
     private fun checkBlock(node: AstNode.Block<Unit>): AstNode.Block<TypeData> {
-        scopes.add(mutableSetOf())
+        scopes.addFirst(mutableSetOf())
         val statements = node.statements.map(::checkStatement)
         scopes.removeFirst()
         return AstNode.Block(statements, node.span, TypeData.None)
@@ -56,8 +56,9 @@ class TypeChecker private constructor(private val signature: Signature, private 
         if (type != null && expr != null && !expr.extra.type.isAssignableTo(type.extra.type)) {
             throw TypeMismatchException(type.extra.type, expr.extra.type, node.span)
         }
-        val inferredType = type?.extra?.type ?: expr?.extra?.type
-        ?: throw AmaltheaException("Cannot infer type for variable '${node.name}'", node.span)
+        val inferredType = type?.extra?.type
+            ?: expr?.extra?.type
+            ?: throw AmaltheaException("Cannot infer type for variable '${node.name}'", node.span)
         if (scopes.any { scope -> scope.any { it.name == node.name } }) {
             throw AmaltheaException("Duplicate variable name '${node.name}'", node.span)
         }

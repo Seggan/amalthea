@@ -168,8 +168,8 @@ class Parser private constructor(private val tokens: List<Token>) {
         mapOf(
             DOUBLE_EQUAL to BinOp.Eq,
             NOT_DOUBLE_EQUAL to BinOp.NotEq,
-            TRIPLE_EQUAL to BinOp.Is,
-            NOT_TRIPLE_EQUAL to BinOp.NotIs
+            TRIPLE_EQUAL to BinOp.RefEq,
+            NOT_TRIPLE_EQUAL to BinOp.RefNotEq
         )
     )
 

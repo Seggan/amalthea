@@ -20,7 +20,7 @@ class VariableChecker private constructor(private val initialized: MutableSet<Lo
                 checkExpression(node.expr)
                 val variable = (node.extra as TypeData.Variable).variable
                 if (variable in initialized && !variable.isMutable) {
-                    throw AmaltheaException("Cannot assign to immutable variable '${variable.name}'", node.span)
+                    throw AmaltheaException("Cannot reassign immutable variable '${variable.name}'", node.span)
                 }
                 initialized += variable
             }

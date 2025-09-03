@@ -13,7 +13,7 @@ import org.objectweb.asm.Opcodes.*
 class FunctionCompiler private constructor(
     private val signature: Signature,
     private val queryEngine: QueryEngine,
-    private val mv: DeferredMethodVisitor
+    val mv: DeferredMethodVisitor
 ) {
 
     private val dependencies = mutableSetOf<CompiledFunction>()
@@ -118,7 +118,7 @@ class FunctionCompiler private constructor(
         }
     }
 
-    private fun compileExpression(node: AstNode.Expression<TypeData>) = when (node) {
+    fun compileExpression(node: AstNode.Expression<TypeData>) = when (node) {
         is AstNode.BinaryOp -> compileBinaryOp(node)
         is AstNode.FloatLiteral -> compileFloatLiteral(node)
         is AstNode.FunctionCall -> compileFunctionCall(node)
@@ -130,13 +130,7 @@ class FunctionCompiler private constructor(
     }
 
     private fun compileBinaryOp(node: AstNode.BinaryOp<TypeData>) {
-        val leftType = node.left.extra.type
-        val rightType = node.right.extra.type
-        compileExpression(node.left)
-        mv.boxConditional(leftType, rightType)
-        compileExpression(node.right)
-        mv.boxConditional(rightType, leftType)
-        node.op.compile(mv, leftType, rightType)
+        node.op.compile(this, node.left, node.right)
     }
 
     private fun compileFloatLiteral(node: AstNode.FloatLiteral<TypeData>) {
@@ -221,76 +215,5 @@ class FunctionCompiler private constructor(
             compiler.compile(typedAst)
             return CompiledFunction(key.signature, mv, compiler.dependencies)
         }
-    }
-}
-
-private fun DeferredMethodVisitor.boxConditional(provided: Type, expected: Type) {
-    if (!(provided is Type.Primitive && expected !is Type.Primitive)) return
-    when (provided) {
-        Type.Primitive.BYTE -> visitMethodInsn(
-            INVOKESTATIC,
-            "java/lang/Byte",
-            "valueOf",
-            "(B)Ljava/lang/Byte;",
-            false
-        )
-
-        Type.Primitive.SHORT -> visitMethodInsn(
-            INVOKESTATIC,
-            "java/lang/Short",
-            "valueOf",
-            "(S)Ljava/lang/Short;",
-            false
-        )
-
-        Type.Primitive.INT -> visitMethodInsn(
-            INVOKESTATIC,
-            "java/lang/Integer",
-            "valueOf",
-            "(I)Ljava/lang/Integer;",
-            false
-        )
-
-        Type.Primitive.LONG -> visitMethodInsn(
-            INVOKESTATIC,
-            "java/lang/Long",
-            "valueOf",
-            "(J)Ljava/lang/Long;",
-            false
-        )
-
-        Type.Primitive.FLOAT -> visitMethodInsn(
-            INVOKESTATIC,
-            "java/lang/Float",
-            "valueOf",
-            "(F)Ljava/lang/Float;",
-            false
-        )
-
-        Type.Primitive.DOUBLE -> visitMethodInsn(
-            INVOKESTATIC,
-            "java/lang/Double",
-            "valueOf",
-            "(D)Ljava/lang/Double;",
-            false
-        )
-
-        Type.Primitive.BOOLEAN -> visitMethodInsn(
-            INVOKESTATIC,
-            "java/lang/Boolean",
-            "valueOf",
-            "(Z)Ljava/lang/Boolean;",
-            false
-        )
-
-        Type.Primitive.CHAR -> visitMethodInsn(
-            INVOKESTATIC,
-            "java/lang/Character",
-            "valueOf",
-            "(C)Ljava/lang/Character;",
-            false
-        )
-
-        else -> {}
     }
 }

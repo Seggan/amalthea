@@ -10,8 +10,8 @@ import io.github.seggan.amalthea.query.Queryable
 
 class TypeChecker private constructor(private val signature: Signature, private val queryEngine: QueryEngine) {
 
-    private val scopes = ArrayDeque<Scope>()
-    private var currentScope = 0
+    private val scopes = ArrayDeque<MutableSet<LocalVariable>>()
+    private var variableId = 0
 
     private fun check(node: AstNode.FunctionDeclaration<Unit>): AstNode.FunctionDeclaration<TypeData> {
         val params = node.parameters.map { (name, type) -> name to checkType(type) }
@@ -20,9 +20,9 @@ class TypeChecker private constructor(private val signature: Signature, private 
             if (paramVars.any { it.name == name }) {
                 throw AmaltheaException("Duplicate parameter name '$name'", node.span)
             }
-            paramVars.add(LocalVariable(name, type.extra.type, false, 0))
+            paramVars.add(LocalVariable(variableId++, name, type.extra.type, false))
         }
-        scopes.add(Scope(paramVars.toMutableSet(), mutableSetOf()))
+        scopes.add(paramVars.toMutableSet())
         val body = checkBlock(node.body)
         scopes.removeFirst()
         return AstNode.FunctionDeclaration(
@@ -36,11 +36,9 @@ class TypeChecker private constructor(private val signature: Signature, private 
     }
 
     private fun checkBlock(node: AstNode.Block<Unit>): AstNode.Block<TypeData> {
-        scopes.add(Scope(mutableSetOf(), mutableSetOf()))
-        currentScope++
+        scopes.add(mutableSetOf())
         val statements = node.statements.map(::checkStatement)
         scopes.removeFirst()
-        currentScope--
         return AstNode.Block(statements, node.span, TypeData.None)
     }
 
@@ -60,15 +58,12 @@ class TypeChecker private constructor(private val signature: Signature, private 
         }
         val inferredType = type?.extra?.type ?: expr?.extra?.type
         ?: throw AmaltheaException("Cannot infer type for variable '${node.name}'", node.span)
-        if (scopes.any { scope -> scope.allVariables.any { it.name == node.name } }) {
+        if (scopes.any { scope -> scope.any { it.name == node.name } }) {
             throw AmaltheaException("Duplicate variable name '${node.name}'", node.span)
         }
-        val variable = LocalVariable(node.name, inferredType, node.isMutable, currentScope)
-        if (expr != null) {
-            scopes.first().initialized.add(variable)
-        } else {
-            scopes.first().uninitialized.add(variable)
-        }
+
+        val variable = LocalVariable(variableId++, node.name, inferredType, node.isMutable)
+        scopes.first().add(variable)
         return AstNode.VariableDeclaration(
             node.isMutable,
             node.name,
@@ -81,15 +76,10 @@ class TypeChecker private constructor(private val signature: Signature, private 
 
     private fun checkVariableAssignment(node: AstNode.VariableAssignment<Unit>): AstNode.VariableAssignment<TypeData> {
         val expr = checkExpression(node.expr)
-        val (variable, scope) = findVariable(node.name, node.span)
-        if (!(variable.isMutable || variable in scope.uninitialized)) {
-            throw AmaltheaException("Cannot assign to immutable variable '${node.name}'", node.span)
-        }
+        val variable = findVariable(node.name, node.span)
         if (!expr.extra.type.isAssignableTo(variable.type)) {
             throw TypeMismatchException(variable.type, expr.extra.type, node.span)
         }
-        scope.initialized.add(variable)
-        scope.uninitialized.remove(variable)
         return AstNode.VariableAssignment(node.name, expr, node.span, TypeData.Variable(variable))
     }
 
@@ -160,11 +150,7 @@ class TypeChecker private constructor(private val signature: Signature, private 
     }
 
     private fun checkVariable(node: AstNode.Variable<Unit>): AstNode.Variable<TypeData> {
-        val variable = findVariable(node.name, node.span).first
-        if (variable in scopes.first().uninitialized) {
-            throw AmaltheaException("Variable '${node.name}' is not initialized", node.span)
-        }
-        return AstNode.Variable(node.name, node.span, TypeData.Variable(variable))
+        return AstNode.Variable(node.name, node.span, TypeData.Variable(findVariable(node.name, node.span)))
     }
 
     private fun checkType(node: AstNode.Type<Unit>): AstNode.Type<TypeData> {
@@ -175,11 +161,9 @@ class TypeChecker private constructor(private val signature: Signature, private 
         )
     }
 
-    private fun findVariable(name: String, span: Span): Pair<LocalVariable, Scope> {
-        return scopes.firstNotNullOfOrNull { scope ->
-            val variable = scope.allVariables.find { it.name == name }
-            if (variable != null) variable to scope else null
-        } ?: throw AmaltheaException("Variable '$name' is not defined", span)
+    private fun findVariable(name: String, span: Span): LocalVariable {
+        return scopes.firstNotNullOfOrNull { scope -> scope.find { it.name == name } }
+            ?: throw AmaltheaException("Variable '$name' is not defined", span)
     }
 
     class QueryProvider(private val queryEngine: QueryEngine) :
@@ -187,15 +171,23 @@ class TypeChecker private constructor(private val signature: Signature, private 
         override val keyType = Key.TypeCheck::class
 
         override fun query(key: Key.TypeCheck): AstNode.FunctionDeclaration<TypeData> {
-            val untypedAst = queryEngine[Key.FindFunctionBody(key.signature)]
-            return TypeChecker(key.signature, queryEngine).check(untypedAst)
+            val function = queryEngine[Key.FindFunctionBody(key.signature)]
+            if (!checkReturns(function.body)) {
+                throw AmaltheaException("Function ${key.signature} does not return on all paths", function.span)
+            }
+            val checked = TypeChecker(key.signature, queryEngine).check(function)
+            VariableChecker.check(checked.body)
+            return checked
+        }
+
+        private fun checkReturns(node: AstNode.Statement<*>): Boolean = when (node) {
+            is AstNode.Block -> node.statements.any(::checkReturns)
+            is AstNode.Expression -> false
+            is AstNode.Return -> true
+            is AstNode.VariableAssignment -> false
+            is AstNode.VariableDeclaration -> false
         }
     }
-}
-
-private data class Scope(val initialized: MutableSet<LocalVariable>, val uninitialized: MutableSet<LocalVariable>) {
-    val allVariables: Set<LocalVariable>
-        get() = initialized + uninitialized
 }
 
 private class TypeMismatchException(expected: Type, actual: Type, span: Span) :

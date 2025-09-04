@@ -198,7 +198,7 @@ class TypeChecker private constructor(private val signature: Signature, private 
                 throw AmaltheaException("Function ${key.signature} does not return on all paths", function.span)
             }
             val checked = TypeChecker(key.signature, queryEngine).check(function)
-            VariableChecker.check(checked.body)
+            VariableChecker.check(checked)
             return checked
         }
 

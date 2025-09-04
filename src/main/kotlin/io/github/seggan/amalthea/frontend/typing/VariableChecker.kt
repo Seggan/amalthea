@@ -76,8 +76,8 @@ class VariableChecker private constructor(private val initialized: MutableSet<Lo
     }
 
     companion object {
-        fun check(block: AstNode.Block<TypeData>) {
-            VariableChecker(mutableSetOf()).check(block)
+        fun check(function: AstNode.FunctionDeclaration<TypeData>) {
+            VariableChecker((function.extra as TypeData.Function).parameters.toMutableSet()).check(function.body)
         }
     }
 }

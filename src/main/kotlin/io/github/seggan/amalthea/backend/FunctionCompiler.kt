@@ -192,7 +192,9 @@ class FunctionCompiler private constructor(
         }
 
         val name = signature.name
-        dependencies.add(queryEngine[Key.Compile(signature)])
+        if (signature != this.signature) {
+            dependencies.add(queryEngine[Key.Compile(signature)])
+        }
         val source = queryEngine[Key.ResolvePackage(name.pkg)]
         val jvmName = QualifiedName(name.pkg, QualifiedName.className(source)).internalName
         mv.visitMethodInsn(INVOKESTATIC, jvmName, name.name, signature.type.jvmType, false)

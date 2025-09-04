@@ -15,13 +15,11 @@ sealed class BinOp(val tokenType: Token.Type) {
 
     abstract fun checkType(left: Type, right: Type): Type
 
-    open fun compile(
+    abstract fun compile(
         compiler: FunctionCompiler,
         left: AstNode.Expression<TypeData>,
         right: AstNode.Expression<TypeData>
-    ) {
-        TODO()
-    }
+    )
 
     sealed class NumberOp(tokenType: Token.Type, private val op: Int) : BinOp(tokenType) {
         override fun checkType(left: Type, right: Type): Type {
@@ -169,6 +167,82 @@ sealed class BinOp(val tokenType: Token.Type) {
             }
             throw AmaltheaException("Cannot perform ${this.tokenType} on $left and $right", mutableListOf())
         }
+
+        override fun compile(
+            compiler: FunctionCompiler,
+            left: AstNode.Expression<TypeData>,
+            right: AstNode.Expression<TypeData>
+        ) {
+            val mv = compiler.mv
+            val leftType = left.extra.type.promoteSmallToInt()
+            val rightType = right.extra.type.promoteSmallToInt()
+            val common = getCommonSupertype(leftType, rightType)
+            val jump = Label()
+            val end = Label()
+            val finalOp = when (this) {
+                is Lt -> IFLT
+                is LtEq -> IFLE
+                is Gt -> IFGT
+                is GtEq -> IFGE
+            }
+            when (common) {
+                Type.Primitive.INT, Type.Primitive.BOOLEAN, Type.Primitive.CHAR -> {
+                    compiler.compileExpression(left)
+                    compiler.compileExpression(right)
+                    val intOp = when (this) {
+                        is Lt -> IF_ICMPLT
+                        is LtEq -> IF_ICMPLE
+                        is Gt -> IF_ICMPGT
+                        is GtEq -> IF_ICMPGE
+                    }
+                    mv.visitJumpInsn(intOp, jump)
+                }
+
+                Type.Primitive.LONG -> {
+                    compiler.compileExpression(left)
+                    if (leftType != Type.Primitive.LONG) mv.visitInsn(I2L)
+                    compiler.compileExpression(right)
+                    if (rightType != Type.Primitive.LONG) mv.visitInsn(I2L)
+                    mv.visitInsn(LCMP)
+                    mv.visitJumpInsn(finalOp, jump)
+                }
+
+                Type.Primitive.FLOAT -> {
+                    compiler.compileExpression(left)
+                    compiler.compileExpression(right)
+                    mv.visitInsn(
+                        when (this) {
+                            is Lt, is LtEq -> FCMPL
+                            is Gt, is GtEq -> FCMPG
+                        }
+                    )
+                    mv.visitJumpInsn(finalOp, jump)
+                }
+
+                Type.Primitive.DOUBLE -> {
+                    compiler.compileExpression(left)
+                    if (leftType != Type.Primitive.DOUBLE) mv.visitInsn(F2D)
+                    compiler.compileExpression(right)
+                    if (rightType != Type.Primitive.DOUBLE) mv.visitInsn(F2D)
+                    mv.visitInsn(
+                        when (this) {
+                            is Lt, is LtEq -> DCMPL
+                            is Gt, is GtEq -> DCMPG
+                        }
+                    )
+                    mv.visitJumpInsn(finalOp, jump)
+                }
+
+                else -> {
+                    TODO()
+                }
+            }
+            mv.visitInsn(ICONST_0)
+            mv.visitJumpInsn(GOTO, end)
+            mv.visitLabel(jump)
+            mv.visitInsn(ICONST_1)
+            mv.visitLabel(end)
+        }
     }
 
     data object Lt : CmpOp(LESS)
@@ -206,7 +280,7 @@ sealed class BinOp(val tokenType: Token.Type) {
         }
     }
 
-    data object Or : AndOrOp(DOUBLE_PIPE)  {
+    data object Or : AndOrOp(DOUBLE_PIPE) {
         override fun compile(
             compiler: FunctionCompiler,
             left: AstNode.Expression<TypeData>,

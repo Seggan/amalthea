@@ -144,6 +144,22 @@ sealed interface AstNode<out E> {
         }
     }
 
+    data class While<E>(
+        val condition: Expression<E>,
+        val body: Block<E>,
+        override val span: Span,
+        override val extra: E
+    ) : Statement<E> {
+        override fun toString() = buildString {
+            appendLine("While:")
+            appendIndented("Condition:")
+            appendIndented(condition, indent = 4)
+            appendIndented("Body:")
+            appendIndented(body, indent = 4)
+            appendIndented("Extra: $extra")
+        }
+    }
+
     data class Return<E>(
         val expr: Expression<E>?,
         override val span: Span,

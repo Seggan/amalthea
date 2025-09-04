@@ -121,7 +121,8 @@ class Parser private constructor(private val tokens: List<Token>) {
         ::parseReturn,
         ::parseVariableDeclaration,
         ::parseVariableAssignment,
-        ::parseIf
+        ::parseIf,
+        ::parseWhile
     )
 
     private fun parseVariableDeclaration(): AstNode.VariableDeclaration<Unit> {
@@ -163,6 +164,15 @@ class Parser private constructor(private val tokens: List<Token>) {
             start + thenBranch.span
         }
         return AstNode.If(condition, thenBranch, elseBranch, span, Unit)
+    }
+
+    private fun parseWhile(): AstNode.While<Unit> {
+        val start = consume(WHILE).span
+        consume(OPEN_PAREN)
+        val condition = parseExpression()
+        consume(CLOSE_PAREN)
+        val body = parseBlock()
+        return AstNode.While(condition, body, start + body.span, Unit)
     }
 
     private fun parseReturn(): AstNode.Return<Unit> {
@@ -408,6 +418,7 @@ class Parser private constructor(private val tokens: List<Token>) {
         )
     }
 
+    @Suppress("SameParameterValue")
     private inline fun <T> parseArgList(closer: Token.Type, subParser: () -> T): List<T> {
         val args = mutableListOf<T>()
         while (true) {

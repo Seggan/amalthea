@@ -87,6 +87,7 @@ class FunctionCompiler private constructor(
         is AstNode.VariableAssignment -> compileVariableAssignment(node)
         is AstNode.VariableDeclaration -> compileVariableDeclaration(node)
         is AstNode.If -> compileIf(node)
+        is AstNode.While -> compileWhile(node)
     }
 
     private fun compileVariableDeclaration(node: AstNode.VariableDeclaration<TypeData>) {
@@ -119,6 +120,17 @@ class FunctionCompiler private constructor(
         if (node.elseBranch != null) {
             compileStatement(node.elseBranch)
         }
+        mv.visitLabel(endLabel)
+    }
+
+    private fun compileWhile(node: AstNode.While<TypeData>) {
+        val startLabel = Label()
+        val endLabel = Label()
+        mv.visitLabel(startLabel)
+        compileExpression(node.condition)
+        mv.visitJumpInsn(IFEQ, endLabel)
+        compileStatement(node.body)
+        mv.visitJumpInsn(GOTO, startLabel)
         mv.visitLabel(endLabel)
     }
 

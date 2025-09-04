@@ -121,6 +121,29 @@ sealed interface AstNode<out E> {
         }
     }
 
+    data class If<E>(
+        val condition: Expression<E>,
+        val thenBranch: Block<E>,
+        val elseBranch: Block<E>?,
+        override val span: Span,
+        override val extra: E
+    ) : Statement<E> {
+        override fun toString() = buildString {
+            appendLine("If:")
+            appendIndented("Condition:")
+            appendIndented(condition, indent = 4)
+            appendIndented("Then branch:")
+            appendIndented(thenBranch, indent = 4)
+            if (elseBranch != null) {
+                appendIndented("Else branch:")
+                appendIndented(elseBranch, indent = 4)
+            } else {
+                appendIndented("Else branch: <none>")
+            }
+            appendIndented("Extra: $extra")
+        }
+    }
+
     data class Return<E>(
         val expr: Expression<E>?,
         override val span: Span,

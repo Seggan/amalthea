@@ -96,6 +96,9 @@ data class Token(val type: Type, val text: String, val span: Span) {
         VAR("'var'", "var"),
         RETURN("'return'", "return"),
 
+        IF("'if'", "if"),
+        ELSE("'else'", "else"),
+
         ERROR("error") {
             override fun getLength(input: CharSequence): Int = 0
         }

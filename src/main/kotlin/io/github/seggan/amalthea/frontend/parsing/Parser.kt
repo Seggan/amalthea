@@ -120,7 +120,8 @@ class Parser private constructor(private val tokens: List<Token>) {
         ::parseBlock,
         ::parseReturn,
         ::parseVariableDeclaration,
-        ::parseVariableAssignment
+        ::parseVariableAssignment,
+        ::parseIf
     )
 
     private fun parseVariableDeclaration(): AstNode.VariableDeclaration<Unit> {
@@ -147,6 +148,21 @@ class Parser private constructor(private val tokens: List<Token>) {
         val expr = parseExpression()
         val span = name.span + consume(SEMICOLON).span
         return AstNode.VariableAssignment(name.text, expr, span, Unit)
+    }
+
+    private fun parseIf(): AstNode.If<Unit> {
+        val start = consume(IF).span
+        consume(OPEN_PAREN)
+        val condition = parseExpression()
+        consume(CLOSE_PAREN)
+        val thenBranch = parseBlock()
+        val elseBranch = if (tryConsume(ELSE) != null) parseBlock() else null
+        val span = if (elseBranch != null) {
+            start + elseBranch.span
+        } else {
+            start + thenBranch.span
+        }
+        return AstNode.If(condition, thenBranch, elseBranch, span, Unit)
     }
 
     private fun parseReturn(): AstNode.Return<Unit> {

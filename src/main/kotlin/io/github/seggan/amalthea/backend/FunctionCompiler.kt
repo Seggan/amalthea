@@ -86,6 +86,7 @@ class FunctionCompiler private constructor(
         is AstNode.Return -> compileReturn(node)
         is AstNode.VariableAssignment -> compileVariableAssignment(node)
         is AstNode.VariableDeclaration -> compileVariableDeclaration(node)
+        is AstNode.If -> compileIf(node)
     }
 
     private fun compileVariableDeclaration(node: AstNode.VariableDeclaration<TypeData>) {
@@ -105,6 +106,20 @@ class FunctionCompiler private constructor(
         compileExpression(node.expr)
         mv.boxConditional(node.expr.extra.type, varData.type)
         mv.visitVarInsn(varData.type.asmType.getOpcode(ISTORE), index)
+    }
+
+    private fun compileIf(node: AstNode.If<TypeData>) {
+        compileExpression(node.condition)
+        val elseLabel = Label()
+        val endLabel = Label()
+        mv.visitJumpInsn(IFEQ, elseLabel)
+        compileStatement(node.thenBranch)
+        mv.visitJumpInsn(GOTO, endLabel)
+        mv.visitLabel(elseLabel)
+        if (node.elseBranch != null) {
+            compileStatement(node.elseBranch)
+        }
+        mv.visitLabel(endLabel)
     }
 
     private fun compileReturn(node: AstNode.Return<TypeData>) {

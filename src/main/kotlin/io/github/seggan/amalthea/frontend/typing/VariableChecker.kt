@@ -31,6 +31,13 @@ class VariableChecker private constructor(private val initialized: MutableSet<Lo
                     initialized += (node.extra as TypeData.Variable).variable
                 }
             }
+
+            is AstNode.If -> {
+                checkExpression(node.condition)
+                val thenInitialized = checkBlock(node.thenBranch)
+                val elseInitialized = node.elseBranch?.let(::checkBlock) ?: initialized.toSet()
+                initialized += thenInitialized intersect elseInitialized
+            }
         }
     }
 

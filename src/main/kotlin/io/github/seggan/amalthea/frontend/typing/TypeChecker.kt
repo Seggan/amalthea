@@ -48,6 +48,7 @@ class TypeChecker private constructor(private val signature: Signature, private 
         is AstNode.Return -> checkReturn(node)
         is AstNode.VariableAssignment -> checkVariableAssignment(node)
         is AstNode.VariableDeclaration -> checkVariableDeclaration(node)
+        is AstNode.If -> checkIf(node)
     }
 
     private fun checkVariableDeclaration(node: AstNode.VariableDeclaration<Unit>): AstNode.VariableDeclaration<TypeData> {
@@ -82,6 +83,16 @@ class TypeChecker private constructor(private val signature: Signature, private 
             throw TypeMismatchException(variable.type, expr.extra.type, node.span)
         }
         return AstNode.VariableAssignment(node.name, expr, node.span, TypeData.Variable(variable))
+    }
+
+    private fun checkIf(node: AstNode.If<Unit>): AstNode.If<TypeData> {
+        val condition = checkExpression(node.condition)
+        if (!condition.extra.type.isAssignableTo(Type.Primitive.BOOLEAN)) {
+            throw TypeMismatchException(Type.Primitive.BOOLEAN, condition.extra.type, node.span)
+        }
+        val thenBranch = checkBlock(node.thenBranch)
+        val elseBranch = node.elseBranch?.let(::checkBlock)
+        return AstNode.If(condition, thenBranch, elseBranch, node.span, TypeData.None)
     }
 
     private fun checkReturn(node: AstNode.Return<Unit>): AstNode.Return<TypeData> {
@@ -187,6 +198,7 @@ class TypeChecker private constructor(private val signature: Signature, private 
             is AstNode.Return -> true
             is AstNode.VariableAssignment -> false
             is AstNode.VariableDeclaration -> false
+            is AstNode.If -> checkReturns(node.thenBranch) && (node.elseBranch?.let(::checkReturns) ?: false)
         }
     }
 }

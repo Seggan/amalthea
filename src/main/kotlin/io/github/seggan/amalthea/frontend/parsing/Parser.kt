@@ -22,18 +22,18 @@ class Parser private constructor(private val tokens: List<Token>) {
         while (true) {
             imports.add(parseImport() ?: break)
         }
-        val functions = mutableListOf<AstNode.FunctionDeclaration<Unit>>()
+        val structs = mutableListOf<AstNode.Struct<Unit>>()
+        val functions = mutableListOf<AstNode.Function<Unit>>()
         while (index < tokens.size) {
-            try {
-                try {
-                    functions.add(parseFunction())
-                } catch (e: ParseException) {
-                    errors.add(e)
-                    skipUntil(FUN)
-                }
-            } catch (e: ParseException) {
-                errors.add(e)
-                index++
+            if (tryConsume(STRUCT) != null) {
+                index--
+                structs.add(parseStruct())
+                continue
+            }
+            if (tryConsume(FUN) != null) {
+                index--
+                functions.add(parseFunction())
+                continue
             }
         }
         val span = if (tokens.isEmpty()) {
@@ -41,7 +41,7 @@ class Parser private constructor(private val tokens: List<Token>) {
         } else {
             tokens.first().span + tokens.last().span
         }
-        return AstNode.File(pkg, imports, functions, span, Unit)
+        return AstNode.File(pkg, imports, structs, functions, span, Unit)
     }
 
     private fun parsePackage(): List<String> {
@@ -66,7 +66,20 @@ class Parser private constructor(private val tokens: List<Token>) {
         return AstNode.Import(qName, fullSpan, Unit)
     }
 
-    private fun parseFunction(): AstNode.FunctionDeclaration<Unit> {
+    private fun parseStruct(): AstNode.Struct<Unit> {
+        val start = consume(STRUCT).span
+        val name = parseId().text
+        consume(OPEN_BRACE)
+        val fields = parseArgList(CLOSE_BRACE) {
+            val fieldName = parseId().text
+            consume(COLON)
+            val fieldType = parseType()
+            fieldName to fieldType
+        }
+        return AstNode.Struct(name, fields, start + tokens[index - 1].span, Unit)
+    }
+
+    private fun parseFunction(): AstNode.Function<Unit> {
         val start = consume(FUN).span
         val name = parseId().text
         consume(OPEN_PAREN)
@@ -91,7 +104,7 @@ class Parser private constructor(private val tokens: List<Token>) {
                 )
             }
         }
-        return AstNode.FunctionDeclaration(name, parameters, returnType, body, start + body.span, Unit)
+        return AstNode.Function(name, parameters, returnType, body, start + body.span, Unit)
     }
 
     private fun parseBlock(): AstNode.Block<Unit> {
@@ -418,7 +431,6 @@ class Parser private constructor(private val tokens: List<Token>) {
         )
     }
 
-    @Suppress("SameParameterValue")
     private inline fun <T> parseArgList(closer: Token.Type, subParser: () -> T): List<T> {
         val args = mutableListOf<T>()
         while (true) {

@@ -1,4 +1,4 @@
-package io.github.seggan.amalthea.frontend.typing
+package io.github.seggan.amalthea.frontend.typing.function
 
 import io.github.seggan.amalthea.frontend.AmaltheaException
 import io.github.seggan.amalthea.frontend.Intrinsics
@@ -26,7 +26,7 @@ class FunctionCallResolver(private val queryEngine: QueryEngine) : Queryable<Key
 
         val source = queryEngine[Key.ResolvePackage(name.pkg)]
         val untypedAst = queryEngine[Key.UntypedAst(source)]
-        for (function in untypedAst.declarations) {
+        for (function in untypedAst.functions) {
             if (function.name == name.name) {
                 val header = queryEngine[Key.ResolveHeader(name.pkg, function)]
                 if (header.canCallWith(args)) {

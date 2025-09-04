@@ -3,7 +3,11 @@ package io.github.seggan.amalthea.backend
 import io.github.seggan.amalthea.frontend.Intrinsics
 import io.github.seggan.amalthea.frontend.QualifiedName
 import io.github.seggan.amalthea.frontend.parsing.AstNode
-import io.github.seggan.amalthea.frontend.typing.*
+import io.github.seggan.amalthea.frontend.typing.Type
+import io.github.seggan.amalthea.frontend.typing.TypeData
+import io.github.seggan.amalthea.frontend.typing.asmType
+import io.github.seggan.amalthea.frontend.typing.function.LocalVariable
+import io.github.seggan.amalthea.frontend.typing.function.Signature
 import io.github.seggan.amalthea.query.Key
 import io.github.seggan.amalthea.query.QueryEngine
 import io.github.seggan.amalthea.query.Queryable
@@ -22,7 +26,7 @@ class FunctionCompiler private constructor(
     private var variableIndex = if (signature.name.name == "main") 1 else 0
     private var scope = 0
 
-    private fun compile(ast: AstNode.FunctionDeclaration<TypeData>) {
+    private fun compile(ast: AstNode.Function<TypeData>) {
         for (param in (ast.extra as TypeData.Function).parameters) {
             variables[param] = variableIndex++ to Label()
         }

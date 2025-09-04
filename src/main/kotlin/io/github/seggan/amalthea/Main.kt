@@ -9,7 +9,10 @@ import io.github.seggan.amalthea.frontend.QualifiedName
 import io.github.seggan.amalthea.frontend.lexing.Lexer
 import io.github.seggan.amalthea.frontend.parsing.PackageResolver
 import io.github.seggan.amalthea.frontend.parsing.Parser
-import io.github.seggan.amalthea.frontend.typing.*
+import io.github.seggan.amalthea.frontend.typing.ImportResolver
+import io.github.seggan.amalthea.frontend.typing.Type
+import io.github.seggan.amalthea.frontend.typing.TypeResolver
+import io.github.seggan.amalthea.frontend.typing.function.*
 import io.github.seggan.amalthea.query.Key
 import io.github.seggan.amalthea.query.QueryEngine
 import org.objectweb.asm.ClassWriter
@@ -40,7 +43,7 @@ fun main(args: Array<String>) {
     queryEngine.register(::FunctionCallResolver)
     queryEngine.register(::FunctionFinder)
     queryEngine.register(::HeaderResolver)
-    queryEngine.register(TypeChecker::QueryProvider)
+    queryEngine.register(FunctionTypeChecker::QueryProvider)
     queryEngine.register(FunctionCompiler::QueryProvider)
 
     try {

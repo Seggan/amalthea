@@ -1,6 +1,8 @@
 package io.github.seggan.amalthea.frontend.typing
 
 import io.github.seggan.amalthea.frontend.AmaltheaException
+import io.github.seggan.amalthea.frontend.CodeSource
+import io.github.seggan.amalthea.frontend.QualifiedName
 import io.github.seggan.amalthea.frontend.parsing.TypeName
 import io.github.seggan.amalthea.query.Key
 import io.github.seggan.amalthea.query.QueryEngine
@@ -12,18 +14,14 @@ class TypeResolver(private val queryEngine: QueryEngine) : Queryable<Key.Resolve
     override fun query(key: Key.ResolveType): Type {
         return when (val type = key.type) {
             is TypeName.Simple -> {
-                val qName = type.qName
-                val name = if (qName.pkg.isEmpty()) {
-                    queryEngine[Key.FindImport(qName.name, key.context)]
-                } else {
-                    qName
-                }
+                val name = expandName(type.qName, key.context)
                 for (builtin in Type.builtinTypes) {
                     if (builtin.qName == name) {
                         return builtin
                     }
                 }
-                throw AmaltheaException("Type '$qName' not found")
+                findStruct(name)?.let { return it }
+                throw AmaltheaException("Type '${type.qName}' not found")
             }
 
             is TypeName.Function -> {
@@ -32,5 +30,24 @@ class TypeResolver(private val queryEngine: QueryEngine) : Queryable<Key.Resolve
                 Type.Function(paramTypes, returnType)
             }
         }
+    }
+
+    private fun expandName(name: QualifiedName, context: CodeSource): QualifiedName {
+        return if (name.pkg.isEmpty()) queryEngine[Key.FindImport(name.name, context)] else name
+    }
+
+    private fun findStruct(name: QualifiedName): Type.Struct? {
+        val source = queryEngine[Key.ResolvePackage(name.pkg)]
+        val untypedAst = queryEngine[Key.UntypedAst(source)]
+        for (struct in untypedAst.structs) {
+            if (struct.name == name.name) {
+                val fields = struct.fields.associate { (fieldName, fieldType) ->
+                    val resolvedType = queryEngine[Key.ResolveType(fieldType.name, source)]
+                    fieldName to resolvedType
+                }
+                return Type.Struct(name, fields)
+            }
+        }
+        return null
     }
 }

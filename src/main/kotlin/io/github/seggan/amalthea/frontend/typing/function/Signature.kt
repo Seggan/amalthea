@@ -1,6 +1,7 @@
-package io.github.seggan.amalthea.frontend.typing
+package io.github.seggan.amalthea.frontend.typing.function
 
 import io.github.seggan.amalthea.frontend.QualifiedName
+import io.github.seggan.amalthea.frontend.typing.Type
 
 data class Signature(val name: QualifiedName, val type: Type.Function) {
     override fun toString(): String = buildString {

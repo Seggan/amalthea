@@ -1,5 +1,8 @@
 package io.github.seggan.amalthea.frontend.typing
 
+import io.github.seggan.amalthea.frontend.typing.function.LocalVariable
+import io.github.seggan.amalthea.frontend.typing.function.Signature
+
 sealed interface TypeData {
 
     val type: Type

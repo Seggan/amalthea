@@ -70,6 +70,12 @@ sealed interface Type {
         override fun toString(): String = qName.toString()
     }
 
+    data class Struct(override val qName: QualifiedName, val fields: Map<String, Type>) : Type {
+        override val jvmType = qName.descriptor
+
+        override fun toString(): String = qName.toString()
+    }
+
     data class Function(val args: List<Type>, val returnType: Type) : Type {
         override val qName: QualifiedName
             get() = throw IllegalStateException("Function types do not have a qualified name")

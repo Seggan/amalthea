@@ -1,7 +1,8 @@
-package io.github.seggan.amalthea.frontend.typing
+package io.github.seggan.amalthea.frontend.typing.function
 
 import io.github.seggan.amalthea.frontend.AmaltheaException
 import io.github.seggan.amalthea.frontend.parsing.AstNode
+import io.github.seggan.amalthea.frontend.typing.TypeData
 
 class VariableChecker private constructor(private val initialized: MutableSet<LocalVariable>) {
 
@@ -76,7 +77,7 @@ class VariableChecker private constructor(private val initialized: MutableSet<Lo
     }
 
     companion object {
-        fun check(function: AstNode.FunctionDeclaration<TypeData>) {
+        fun check(function: AstNode.Function<TypeData>) {
             VariableChecker((function.extra as TypeData.Function).parameters.toMutableSet()).check(function.body)
         }
     }

@@ -6,9 +6,9 @@ import io.github.seggan.amalthea.frontend.QualifiedName
 import io.github.seggan.amalthea.frontend.lexing.Token
 import io.github.seggan.amalthea.frontend.parsing.AstNode
 import io.github.seggan.amalthea.frontend.parsing.TypeName
-import io.github.seggan.amalthea.frontend.typing.Signature
 import io.github.seggan.amalthea.frontend.typing.Type
 import io.github.seggan.amalthea.frontend.typing.TypeData
+import io.github.seggan.amalthea.frontend.typing.function.Signature
 
 sealed interface Key<V> {
 
@@ -22,7 +22,7 @@ sealed interface Key<V> {
 
     data class ResolveType(val type: TypeName, val context: CodeSource) : Key<Type>
 
-    data class ResolveHeader(val pkg: List<String>, val function: AstNode.FunctionDeclaration<Unit>) : Key<Signature> {
+    data class ResolveHeader(val pkg: List<String>, val function: AstNode.Function<Unit>) : Key<Signature> {
         override fun toString(): String {
             return "ResolveHeader(pkg=$pkg, function=${function.name}(${
                 function.parameters.joinToString { (name, type) -> "$name: $type" }
@@ -30,11 +30,11 @@ sealed interface Key<V> {
         }
     }
 
-    data class FindFunctionBody(val signature: Signature) : Key<AstNode.FunctionDeclaration<Unit>>
+    data class FindFunctionBody(val signature: Signature) : Key<AstNode.Function<Unit>>
 
     data class ResolveFunctionCall(val name: QualifiedName, val args: List<Type>, val context: CodeSource) : Key<Signature>
 
-    data class TypeCheck(val signature: Signature) : Key<AstNode.FunctionDeclaration<TypeData>>
+    data class TypeCheck(val signature: Signature) : Key<AstNode.Function<TypeData>>
 
     data class Compile(val signature: Signature) : Key<CompiledFunction>
 }

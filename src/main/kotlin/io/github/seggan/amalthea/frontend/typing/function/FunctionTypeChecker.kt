@@ -1,19 +1,21 @@
-package io.github.seggan.amalthea.frontend.typing
+package io.github.seggan.amalthea.frontend.typing.function
 
 import io.github.seggan.amalthea.frontend.AmaltheaException
 import io.github.seggan.amalthea.frontend.Span
 import io.github.seggan.amalthea.frontend.parsing.AstNode
 import io.github.seggan.amalthea.frontend.parsing.inContext
+import io.github.seggan.amalthea.frontend.typing.Type
+import io.github.seggan.amalthea.frontend.typing.TypeData
 import io.github.seggan.amalthea.query.Key
 import io.github.seggan.amalthea.query.QueryEngine
 import io.github.seggan.amalthea.query.Queryable
 
-class TypeChecker private constructor(private val signature: Signature, private val queryEngine: QueryEngine) {
+class FunctionTypeChecker private constructor(private val signature: Signature, private val queryEngine: QueryEngine) {
 
     private val scopes = ArrayDeque<MutableSet<LocalVariable>>()
     private var variableId = 0
 
-    private fun check(node: AstNode.FunctionDeclaration<Unit>): AstNode.FunctionDeclaration<TypeData> {
+    private fun check(node: AstNode.Function<Unit>): AstNode.Function<TypeData> {
         val params = node.parameters.map { (name, type) -> name to checkType(type) }
         val paramVars = mutableListOf<LocalVariable>()
         for ((name, type) in params) {
@@ -25,7 +27,7 @@ class TypeChecker private constructor(private val signature: Signature, private 
         scopes.add(paramVars.toMutableSet())
         val body = checkBlock(node.body)
         scopes.removeFirst()
-        return AstNode.FunctionDeclaration(
+        return AstNode.Function(
             node.name,
             params,
             checkType(node.returnType),
@@ -189,15 +191,15 @@ class TypeChecker private constructor(private val signature: Signature, private 
     }
 
     class QueryProvider(private val queryEngine: QueryEngine) :
-        Queryable<Key.TypeCheck, AstNode.FunctionDeclaration<TypeData>> {
+        Queryable<Key.TypeCheck, AstNode.Function<TypeData>> {
         override val keyType = Key.TypeCheck::class
 
-        override fun query(key: Key.TypeCheck): AstNode.FunctionDeclaration<TypeData> {
+        override fun query(key: Key.TypeCheck): AstNode.Function<TypeData> {
             val function = queryEngine[Key.FindFunctionBody(key.signature)]
             if (!checkReturns(function.body)) {
                 throw AmaltheaException("Function ${key.signature} does not return on all paths", function.span)
             }
-            val checked = TypeChecker(key.signature, queryEngine).check(function)
+            val checked = FunctionTypeChecker(key.signature, queryEngine).check(function)
             VariableChecker.check(checked)
             return checked
         }

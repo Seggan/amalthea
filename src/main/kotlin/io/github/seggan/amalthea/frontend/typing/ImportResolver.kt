@@ -17,7 +17,10 @@ class ImportResolver(private val queryEngine: QueryEngine) : Queryable<Key.FindI
     override fun query(key: Key.FindImport): QualifiedName {
         val ast = queryEngine[Key.UntypedAst(key.context)]
         val imports = ast.imports.map { it.name }.toMutableSet()
-        for (function in ast.declarations) {
+        for (struct in ast.structs) {
+            imports.add(QualifiedName(ast.pkg, struct.name))
+        }
+        for (function in ast.functions) {
             imports.add(QualifiedName(ast.pkg, function.name))
         }
         imports.addAll(builtins)

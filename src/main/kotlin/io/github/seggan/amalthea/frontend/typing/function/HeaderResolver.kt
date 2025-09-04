@@ -1,6 +1,7 @@
-package io.github.seggan.amalthea.frontend.typing
+package io.github.seggan.amalthea.frontend.typing.function
 
 import io.github.seggan.amalthea.frontend.QualifiedName
+import io.github.seggan.amalthea.frontend.typing.Type
 import io.github.seggan.amalthea.query.Key
 import io.github.seggan.amalthea.query.QueryEngine
 import io.github.seggan.amalthea.query.Queryable

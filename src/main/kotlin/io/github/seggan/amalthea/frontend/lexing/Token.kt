@@ -100,6 +100,8 @@ data class Token(val type: Type, val text: String, val span: Span) {
         ELSE("'else'", "else"),
         WHILE("'while'", "while"),
 
+        STRUCT("'struct'", "struct"),
+
         ERROR("error") {
             override fun getLength(input: CharSequence): Int = 0
         }

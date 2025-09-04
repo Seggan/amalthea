@@ -9,7 +9,8 @@ sealed interface AstNode<out E> {
     data class File<E>(
         val pkg: List<String>,
         val imports: List<Import<E>>,
-        val declarations: List<FunctionDeclaration<E>>,
+        val structs: List<Struct<E>>,
+        val functions: List<Function<E>>,
         override val span: Span,
         override val extra: E
     ) : AstNode<E> {
@@ -21,7 +22,7 @@ sealed interface AstNode<out E> {
                 appendIndented(imp, indent = 4)
             }
             appendIndented("Functions:")
-            for (decl in declarations) {
+            for (decl in functions) {
                 appendIndented(decl, indent = 4)
             }
             appendIndented("Extra: $extra")
@@ -40,7 +41,24 @@ sealed interface AstNode<out E> {
         }
     }
 
-    data class FunctionDeclaration<E>(
+    data class Struct<E>(
+        val name: String,
+        val fields: List<Pair<String, Type<E>>>,
+        override val span: Span,
+        override val extra: E
+    ) : AstNode<E> {
+        override fun toString() = buildString {
+            appendLine("Struct:")
+            appendIndented("Name: $name")
+            appendIndented("Fields:")
+            for ((fieldName, fieldType) in fields) {
+                appendIndented("$fieldName: $fieldType", indent = 4)
+            }
+            appendIndented("Extra: $extra")
+        }
+    }
+
+    data class Function<E>(
         val name: String,
         val parameters: List<Pair<String, Type<E>>>,
         val returnType: Type<E>,
@@ -49,7 +67,7 @@ sealed interface AstNode<out E> {
         override val extra: E
     ) : AstNode<E> {
         override fun toString() = buildString {
-            appendLine("FunctionDeclaration:")
+            appendLine("Function:")
             appendIndented("Name: $name")
             appendIndented("Parameters:")
             for ((paramName, paramType) in parameters) {

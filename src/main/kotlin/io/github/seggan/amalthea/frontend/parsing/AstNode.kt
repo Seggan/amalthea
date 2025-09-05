@@ -139,6 +139,24 @@ sealed interface AstNode<out E> {
         }
     }
 
+    data class StructMutation<E>(
+        val receiver: Expression<E>,
+        val fieldName: String,
+        val expr: Expression<E>,
+        override val span: Span,
+        override val extra: E
+    ) : Statement<E> {
+        override fun toString() = buildString {
+            appendLine("StructMutation:")
+            appendIndented("Receiver:")
+            appendIndented(receiver, indent = 4)
+            appendIndented("Field name: $fieldName")
+            appendIndented("Expression:")
+            appendIndented(expr, indent = 4)
+            appendIndented("Extra: $extra")
+        }
+    }
+
     data class If<E>(
         val condition: Expression<E>,
         val thenBranch: Block<E>,

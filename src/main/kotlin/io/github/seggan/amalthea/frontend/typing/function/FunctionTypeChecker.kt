@@ -51,6 +51,7 @@ class FunctionTypeChecker private constructor(private val signature: Signature, 
         is AstNode.Return -> checkReturn(node)
         is AstNode.VariableAssignment -> checkVariableAssignment(node)
         is AstNode.VariableDeclaration -> checkVariableDeclaration(node)
+        is AstNode.StructMutation -> checkStructMutation(node)
         is AstNode.If -> checkIf(node)
         is AstNode.While -> checkWhile(node)
     }
@@ -87,6 +88,29 @@ class FunctionTypeChecker private constructor(private val signature: Signature, 
             throw TypeMismatchException(variable.type, expr.resolvedType, node.span)
         }
         return AstNode.VariableAssignment(node.name, expr, node.span, TypeData.Variable(variable))
+    }
+
+    private fun checkStructMutation(node: AstNode.StructMutation<Unit>): AstNode.StructMutation<TypeData> {
+        val structExpr = checkExpression(node.receiver)
+        val structType = structExpr.resolvedType
+        if (structType !is Type.Struct) {
+            throw AmaltheaException("Cannot mutate field '${node.fieldName}' on non-struct type '$structType'", node.span)
+        }
+        val fieldType = structType.fields.find { it.first == node.fieldName }?.second
+        if (fieldType == null) {
+            throw AmaltheaException("Struct '${structType.qName}' does not have a field named '${node.fieldName}'", node.span)
+        }
+        val valueExpr = checkExpression(node.expr)
+        if (!valueExpr.resolvedType.isAssignableTo(fieldType)) {
+            throw TypeMismatchException(fieldType, valueExpr.resolvedType, node.span)
+        }
+        return AstNode.StructMutation(
+            structExpr,
+            node.fieldName,
+            valueExpr,
+            node.span,
+            TypeData.None
+        )
     }
 
     private fun checkIf(node: AstNode.If<Unit>): AstNode.If<TypeData> {
@@ -184,7 +208,7 @@ class FunctionTypeChecker private constructor(private val signature: Signature, 
                 throw AmaltheaException("Missing value for field '$fieldName' in struct literal of type '${structType.qName}'", node.span)
             }
             if (!value.resolvedType.isAssignableTo(fieldType)) {
-                throw TypeMismatchException(fieldType, value.resolvedType, node.span)
+                throw TypeMismatchException(fieldType, value.resolvedType, value.span)
             }
         }
         return AstNode.StructLiteral(
@@ -251,6 +275,7 @@ class FunctionTypeChecker private constructor(private val signature: Signature, 
             is AstNode.Return -> true
             is AstNode.VariableAssignment -> false
             is AstNode.VariableDeclaration -> false
+            is AstNode.StructMutation -> false
             is AstNode.If -> checkReturns(node.thenBranch) && (node.elseBranch?.let(::checkReturns) ?: false)
             is AstNode.While -> false
         }

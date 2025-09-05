@@ -32,6 +32,11 @@ class VariableChecker private constructor(private val initialized: MutableSet<Lo
                     initialized += (node.extra as TypeData.Variable).variable
                 }
             }
+            
+            is AstNode.StructMutation -> {
+                checkExpression(node.receiver)
+                checkExpression(node.expr)
+            }
 
             is AstNode.If -> {
                 checkExpression(node.condition)

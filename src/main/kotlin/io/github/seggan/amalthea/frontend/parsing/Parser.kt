@@ -134,6 +134,7 @@ class Parser private constructor(private val tokens: List<Token>) {
         ::parseReturn,
         ::parseVariableDeclaration,
         ::parseVariableAssignment,
+        ::parseStructMutation,
         ::parseIf,
         ::parseWhile
     )
@@ -162,6 +163,16 @@ class Parser private constructor(private val tokens: List<Token>) {
         val expr = parseExpression()
         val span = name.span + consume(SEMICOLON).span
         return AstNode.VariableAssignment(name.text, expr, span, Unit)
+    }
+
+    private fun parseStructMutation(): AstNode.StructMutation<Unit> {
+        val target = parsePrimary()
+        consume(DOT)
+        val name = parseId().text
+        consume(EQUAL)
+        val expr = parseExpression()
+        val span = target.span + consume(SEMICOLON).span
+        return AstNode.StructMutation(target, name, expr, span, Unit)
     }
 
     private fun parseIf(): AstNode.If<Unit> {
@@ -277,10 +288,10 @@ class Parser private constructor(private val tokens: List<Token>) {
     }
 
     private fun parseFieldAccess(): AstNode.Expression<Unit> {
-        val expr = parsePrimary()
-        if (tryConsume(DOT) != null) {
-            val fieldName = parseId()
-            return AstNode.FieldAccess(expr, fieldName.text, expr.span + fieldName.span, Unit)
+        var expr = parsePrimary()
+        while (tryConsume(DOT) != null) {
+            val fieldName = parseId().text
+            expr = AstNode.FieldAccess(expr, fieldName, expr.span + tokens[index - 1].span, Unit)
         }
         return expr
     }

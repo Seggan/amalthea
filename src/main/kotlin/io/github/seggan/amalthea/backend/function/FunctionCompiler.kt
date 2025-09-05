@@ -96,6 +96,7 @@ class FunctionCompiler private constructor(
             is AstNode.Return -> compileReturn(node)
             is AstNode.VariableAssignment -> compileVariableAssignment(node)
             is AstNode.VariableDeclaration -> compileVariableDeclaration(node)
+            is AstNode.StructMutation -> compileStructMutation(node)
             is AstNode.If -> compileIf(node)
             is AstNode.While -> compileWhile(node)
         }
@@ -118,6 +119,21 @@ class FunctionCompiler private constructor(
         compileExpression(node.expr)
         mv.boxConditional(node.expr.resolvedType, varData.type)
         mv.visitVarInsn(varData.type.asmType.getOpcode(ISTORE), index)
+    }
+
+    private fun compileStructMutation(node: AstNode.StructMutation<TypeData>) {
+        compileExpression(node.receiver)
+        compileExpression(node.expr)
+
+        val structType = node.receiver.resolvedType as Type.Struct
+        val fieldType = structType.fields.first { it.first == node.fieldName }.second
+        mv.boxConditional(node.expr.resolvedType, fieldType)
+        mv.visitFieldInsn(
+            PUTFIELD,
+            structType.internalName,
+            node.fieldName,
+            fieldType.descriptor
+        )
     }
 
     private fun compileIf(node: AstNode.If<TypeData>) {

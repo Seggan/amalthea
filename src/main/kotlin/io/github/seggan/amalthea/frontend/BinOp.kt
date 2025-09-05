@@ -1,13 +1,14 @@
 package io.github.seggan.amalthea.frontend
 
 import io.github.seggan.amalthea.backend.*
+import io.github.seggan.amalthea.backend.function.FunctionCompiler
 import io.github.seggan.amalthea.frontend.lexing.Token
 import io.github.seggan.amalthea.frontend.lexing.Token.Type.*
 import io.github.seggan.amalthea.frontend.parsing.AstNode
 import io.github.seggan.amalthea.frontend.typing.Type
 import io.github.seggan.amalthea.frontend.typing.TypeData
-import io.github.seggan.amalthea.frontend.typing.asmType
 import io.github.seggan.amalthea.frontend.typing.getCommonSupertype
+import io.github.seggan.amalthea.frontend.typing.resolvedType
 import org.objectweb.asm.Label
 import org.objectweb.asm.Opcodes.*
 
@@ -39,7 +40,7 @@ sealed class BinOp(val tokenType: Token.Type) {
         ) {
             compiler.compileExpression(left)
             compiler.compileExpression(right)
-            val supertype = getCommonSupertype(left.extra.type, right.extra.type).promoteSmallToInt()
+            val supertype = getCommonSupertype(left.resolvedType, right.resolvedType).promoteSmallToInt()
             compiler.mv.visitInsn(supertype.asmType.getOpcode(op))
         }
     }
@@ -65,7 +66,7 @@ sealed class BinOp(val tokenType: Token.Type) {
         ) {
             compiler.compileExpression(left)
             compiler.compileExpression(right)
-            val supertype = getCommonSupertype(left.extra.type, right.extra.type)
+            val supertype = getCommonSupertype(left.resolvedType, right.resolvedType)
             compiler.mv.visitInsn(supertype.asmType.getOpcode(op))
         }
     }
@@ -91,8 +92,8 @@ sealed class BinOp(val tokenType: Token.Type) {
             right: AstNode.Expression<TypeData>
         ) {
             val mv = compiler.mv
-            val leftType = left.extra.type.promoteSmallToInt()
-            val rightType = right.extra.type.promoteSmallToInt()
+            val leftType = left.resolvedType.promoteSmallToInt()
+            val rightType = right.resolvedType.promoteSmallToInt()
             val common = getCommonSupertype(leftType, rightType)
             val jump = Label()
             val end = Label()
@@ -174,8 +175,8 @@ sealed class BinOp(val tokenType: Token.Type) {
             right: AstNode.Expression<TypeData>
         ) {
             val mv = compiler.mv
-            val leftType = left.extra.type.promoteSmallToInt()
-            val rightType = right.extra.type.promoteSmallToInt()
+            val leftType = left.resolvedType.promoteSmallToInt()
+            val rightType = right.resolvedType.promoteSmallToInt()
             val common = getCommonSupertype(leftType, rightType)
             val jump = Label()
             val end = Label()

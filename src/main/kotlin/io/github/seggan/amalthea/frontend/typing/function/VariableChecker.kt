@@ -65,7 +65,9 @@ class VariableChecker private constructor(private val initialized: MutableSet<Lo
             is AstNode.FunctionCall -> node.arguments.forEach(::checkExpression)
             is AstNode.IntLiteral -> {}
             is AstNode.StringLiteral -> {}
+            is AstNode.StructLiteral -> node.fields.forEach { (_, expr) -> checkExpression(expr) }
             is AstNode.UnaryOp -> checkExpression(node.expr)
+            is AstNode.FieldAccess -> checkExpression(node.receiver)
 
             is AstNode.Variable -> {
                 val variable = (node.extra as TypeData.Variable).variable

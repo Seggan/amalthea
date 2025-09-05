@@ -229,6 +229,24 @@ sealed interface AstNode<out E> {
         }
     }
 
+    data class StructLiteral<E>(
+        val struct: Type<E>,
+        val fields: List<Pair<String, Expression<E>>>,
+        override val span: Span,
+        override val extra: E
+    ) : Expression<E> {
+        override fun toString() = buildString {
+            appendLine("StructLiteral:")
+            appendIndented("Struct type: $struct")
+            appendIndented("Fields:")
+            for ((fieldName, fieldExpr) in fields) {
+                appendIndented("$fieldName:", indent = 4)
+                appendIndented(fieldExpr, indent = 8)
+            }
+            appendIndented("Extra: $extra")
+        }
+    }
+
     data class FunctionCall<E>(
         val name: QualifiedName,
         val arguments: List<Expression<E>>,
@@ -284,6 +302,21 @@ sealed interface AstNode<out E> {
         override fun toString() = buildString {
             appendLine("VariableReference:")
             appendIndented("Name: $name")
+            appendIndented("Extra: $extra")
+        }
+    }
+
+    data class FieldAccess<E>(
+        val receiver: Expression<E>,
+        val fieldName: String,
+        override val span: Span,
+        override val extra: E
+    ) : Expression<E> {
+        override fun toString() = buildString {
+            appendLine("FieldAccess:")
+            appendIndented("Receiver:")
+            appendIndented(receiver, indent = 4)
+            appendIndented("Field name: $fieldName")
             appendIndented("Extra: $extra")
         }
     }

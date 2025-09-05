@@ -1,4 +1,4 @@
-package io.github.seggan.amalthea.backend
+package io.github.seggan.amalthea.backend.function
 
 import org.objectweb.asm.Handle
 import org.objectweb.asm.Label

@@ -1,13 +1,15 @@
 package io.github.seggan.amalthea.frontend.typing
 
 import io.github.seggan.amalthea.backend.AsmType
+import io.github.seggan.amalthea.backend.asmType
 import io.github.seggan.amalthea.frontend.QualifiedName
+import io.github.seggan.amalthea.frontend.parsing.AstNode
 import io.github.seggan.amalthea.frontend.parsing.TypeName
 
 sealed interface Type {
 
     val qName: QualifiedName
-    val jvmType: String
+    val asmType: AsmType
 
     val isJavaVoid: Boolean
         get() = false
@@ -22,18 +24,18 @@ sealed interface Type {
 
     enum class Primitive(
         name: String,
-        override val jvmType: String,
+        override val asmType: AsmType,
         private val assginable: Type? = null
     ) : Type {
-        DOUBLE("Double", "D"),
-        FLOAT("Float", "F", DOUBLE),
-        LONG("Long", "J"),
-        INT("Int", "I", LONG),
-        SHORT("Short", "S", INT),
-        BYTE("Byte", "B", SHORT),
-        BOOLEAN("Boolean", "Z"),
-        CHAR("Char", "C"),
-        STRING("String", "Ljava/lang/String;"),
+        DOUBLE("Double", AsmType.DOUBLE_TYPE),
+        FLOAT("Float", AsmType.FLOAT_TYPE, DOUBLE),
+        LONG("Long", AsmType.LONG_TYPE),
+        INT("Int", AsmType.INT_TYPE, LONG),
+        SHORT("Short", AsmType.SHORT_TYPE, INT),
+        BYTE("Byte", AsmType.BYTE_TYPE, SHORT),
+        BOOLEAN("Boolean", AsmType.BOOLEAN_TYPE),
+        CHAR("Char", AsmType.CHAR_TYPE),
+        STRING("String", asmType<String>()),
         ;
 
         override val qName = QualifiedName.amalthea(name)
@@ -47,14 +49,14 @@ sealed interface Type {
 
     data object Unit : Type {
         override val qName = QualifiedName.amalthea("Unit")
-        override val jvmType = "V"
+        override val asmType: AsmType = AsmType.VOID_TYPE
         override val isJavaVoid = true
         override fun toString(): String = qName.toString()
     }
 
     data object Nothing : Type {
         override val qName = QualifiedName.amalthea("Nothing")
-        override val jvmType = "V"
+        override val asmType: AsmType = AsmType.VOID_TYPE
         override val isJavaVoid = true
 
         override fun isAssignableTo(other: Type): Boolean {
@@ -66,12 +68,17 @@ sealed interface Type {
 
     data object Any : Type {
         override val qName = QualifiedName.amalthea("Any")
-        override val jvmType = "Ljava/lang/Object;"
+        override val asmType = asmType<Any>()
         override fun toString(): String = qName.toString()
     }
 
-    data class Struct(override val qName: QualifiedName, val fields: Map<String, Type>) : Type {
-        override val jvmType = qName.descriptor
+    data class Struct(override val qName: QualifiedName, val fields: List<Pair<String, Type>>) : Type {
+        override val asmType: AsmType = AsmType.getObjectType(qName.internalName)
+
+        val constructorDescriptor: String by lazy {
+            val fieldTypes = fields.map { it.second.asmType }
+            AsmType.getMethodDescriptor(AsmType.VOID_TYPE, *fieldTypes.toTypedArray())
+        }
 
         override fun toString(): String = qName.toString()
     }
@@ -80,7 +87,7 @@ sealed interface Type {
         override val qName: QualifiedName
             get() = throw IllegalStateException("Function types do not have a qualified name")
 
-        override val jvmType = "(${args.joinToString("") { it.jvmType }})${returnType.jvmType}"
+        override val asmType: AsmType = AsmType.getMethodType(returnType.asmType, *args.map { it.asmType }.toTypedArray())
 
         override fun asTypeName(): TypeName.Function {
             return TypeName.Function(args.map { it.asTypeName() }, returnType.asTypeName())
@@ -103,8 +110,14 @@ sealed interface Type {
     }
 }
 
-val Type.asmType: AsmType
-    get() = AsmType.getType(jvmType)
+val Type.internalName: String
+    get() = asmType.internalName
+
+val Type.descriptor: String
+    get() = asmType.descriptor
+
+val AstNode<TypeData>.resolvedType: Type
+    get() = extra.type
 
 fun getCommonSupertype(type: Type, other: Type): Type {
     if (type.isAssignableTo(other)) return other

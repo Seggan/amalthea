@@ -1,5 +1,6 @@
 package io.github.seggan.amalthea.backend
 
+import io.github.seggan.amalthea.backend.function.DeferredMethodVisitor
 import io.github.seggan.amalthea.frontend.typing.Type
 import org.objectweb.asm.Opcodes.INVOKESTATIC
 

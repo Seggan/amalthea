@@ -41,7 +41,7 @@ class TypeResolver(private val queryEngine: QueryEngine) : Queryable<Key.Resolve
         val untypedAst = queryEngine[Key.UntypedAst(source)]
         for (struct in untypedAst.structs) {
             if (struct.name == name.name) {
-                val fields = struct.fields.associate { (fieldName, fieldType) ->
+                val fields = struct.fields.map { (fieldName, fieldType) ->
                     val resolvedType = queryEngine[Key.ResolveType(fieldType.name, source)]
                     fieldName to resolvedType
                 }

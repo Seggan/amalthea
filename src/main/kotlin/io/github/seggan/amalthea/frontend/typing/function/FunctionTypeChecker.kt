@@ -6,6 +6,7 @@ import io.github.seggan.amalthea.frontend.parsing.AstNode
 import io.github.seggan.amalthea.frontend.parsing.inContext
 import io.github.seggan.amalthea.frontend.typing.Type
 import io.github.seggan.amalthea.frontend.typing.TypeData
+import io.github.seggan.amalthea.frontend.typing.resolvedType
 import io.github.seggan.amalthea.query.Key
 import io.github.seggan.amalthea.query.QueryEngine
 import io.github.seggan.amalthea.query.Queryable
@@ -22,7 +23,7 @@ class FunctionTypeChecker private constructor(private val signature: Signature, 
             if (paramVars.any { it.name == name }) {
                 throw AmaltheaException("Duplicate parameter name '$name'", node.span)
             }
-            paramVars.add(LocalVariable(variableId++, name, type.extra.type, false))
+            paramVars.add(LocalVariable(variableId++, name, type.resolvedType, false))
         }
         scopes.add(paramVars.toMutableSet())
         val body = checkBlock(node.body)
@@ -57,8 +58,8 @@ class FunctionTypeChecker private constructor(private val signature: Signature, 
     private fun checkVariableDeclaration(node: AstNode.VariableDeclaration<Unit>): AstNode.VariableDeclaration<TypeData> {
         val type = node.type?.let(::checkType)
         val expr = node.expr?.let(::checkExpression)
-        if (type != null && expr != null && !expr.extra.type.isAssignableTo(type.extra.type)) {
-            throw TypeMismatchException(type.extra.type, expr.extra.type, node.span)
+        if (type != null && expr != null && !expr.resolvedType.isAssignableTo(type.resolvedType)) {
+            throw TypeMismatchException(type.resolvedType, expr.resolvedType, node.span)
         }
         val inferredType = type?.extra?.type
             ?: expr?.extra?.type
@@ -82,16 +83,16 @@ class FunctionTypeChecker private constructor(private val signature: Signature, 
     private fun checkVariableAssignment(node: AstNode.VariableAssignment<Unit>): AstNode.VariableAssignment<TypeData> {
         val expr = checkExpression(node.expr)
         val variable = findVariable(node.name, node.span)
-        if (!expr.extra.type.isAssignableTo(variable.type)) {
-            throw TypeMismatchException(variable.type, expr.extra.type, node.span)
+        if (!expr.resolvedType.isAssignableTo(variable.type)) {
+            throw TypeMismatchException(variable.type, expr.resolvedType, node.span)
         }
         return AstNode.VariableAssignment(node.name, expr, node.span, TypeData.Variable(variable))
     }
 
     private fun checkIf(node: AstNode.If<Unit>): AstNode.If<TypeData> {
         val condition = checkExpression(node.condition)
-        if (!condition.extra.type.isAssignableTo(Type.Primitive.BOOLEAN)) {
-            throw TypeMismatchException(Type.Primitive.BOOLEAN, condition.extra.type, node.span)
+        if (!condition.resolvedType.isAssignableTo(Type.Primitive.BOOLEAN)) {
+            throw TypeMismatchException(Type.Primitive.BOOLEAN, condition.resolvedType, node.span)
         }
         val thenBranch = checkBlock(node.thenBranch)
         val elseBranch = node.elseBranch?.let(::checkBlock)
@@ -100,8 +101,8 @@ class FunctionTypeChecker private constructor(private val signature: Signature, 
 
     private fun checkWhile(node: AstNode.While<Unit>): AstNode.While<TypeData> {
         val condition = checkExpression(node.condition)
-        if (!condition.extra.type.isAssignableTo(Type.Primitive.BOOLEAN)) {
-            throw TypeMismatchException(Type.Primitive.BOOLEAN, condition.extra.type, node.span)
+        if (!condition.resolvedType.isAssignableTo(Type.Primitive.BOOLEAN)) {
+            throw TypeMismatchException(Type.Primitive.BOOLEAN, condition.resolvedType, node.span)
         }
         val body = checkBlock(node.body)
         return AstNode.While(condition, body, node.span, TypeData.None)
@@ -116,8 +117,8 @@ class FunctionTypeChecker private constructor(private val signature: Signature, 
             null
         } else {
             val expr = checkExpression(node.expr)
-            if (!expr.extra.type.isAssignableTo(returnType)) {
-                throw TypeMismatchException(returnType, expr.extra.type, node.span)
+            if (!expr.resolvedType.isAssignableTo(returnType)) {
+                throw TypeMismatchException(returnType, expr.resolvedType, node.span)
             }
             expr
         }
@@ -131,21 +132,23 @@ class FunctionTypeChecker private constructor(private val signature: Signature, 
         is AstNode.FloatLiteral -> checkFloatLiteral(node)
         is AstNode.BooleanLiteral -> checkBooleanLiteral(node)
         is AstNode.StringLiteral -> checkStringLiteral(node)
+        is AstNode.StructLiteral -> checkStructLiteral(node)
         is AstNode.UnaryOp -> checkUnaryOp(node)
         is AstNode.Variable -> checkVariable(node)
+        is AstNode.FieldAccess -> checkFieldAccess(node)
     }
 
     private fun checkBinaryOp(node: AstNode.BinaryOp<Unit>): AstNode.BinaryOp<TypeData> {
         val left = checkExpression(node.left)
         val right = checkExpression(node.right)
-        val resultType = inContext(node) { node.op.checkType(left.extra.type, right.extra.type) }
+        val resultType = inContext(node) { node.op.checkType(left.resolvedType, right.resolvedType) }
         return AstNode.BinaryOp(left, node.op, right, TypeData.Basic(resultType))
     }
 
     private fun checkFunctionCall(node: AstNode.FunctionCall<Unit>): AstNode.FunctionCall<TypeData> {
         val arguments = node.arguments.map(::checkExpression)
         val function = inContext(node) {
-            queryEngine[Key.ResolveFunctionCall(node.name, arguments.map { it.extra.type }, node.span.source)]
+            queryEngine[Key.ResolveFunctionCall(node.name, arguments.map { it.resolvedType }, node.span.source)]
         }
         return AstNode.FunctionCall(node.name, arguments, node.span, TypeData.FunctionCall(function))
     }
@@ -167,14 +170,52 @@ class FunctionTypeChecker private constructor(private val signature: Signature, 
         return AstNode.BooleanLiteral(node.value, node.span, TypeData.Basic(Type.Primitive.BOOLEAN))
     }
 
+    private fun checkStructLiteral(node: AstNode.StructLiteral<Unit>): AstNode.StructLiteral<TypeData> {
+        val struct = checkType(node.struct)
+        val structType = struct.resolvedType
+        if (structType !is Type.Struct) {
+            throw AmaltheaException("Type '${node.struct}' is not a struct type", node.span)
+        }
+        val fields = node.fields.map { (name, type) -> name to checkExpression(type) }
+        val fieldValues = fields.toMap()
+        for ((fieldName, fieldType) in structType.fields) {
+            val value = fieldValues[fieldName]
+            if (value == null) {
+                throw AmaltheaException("Missing value for field '$fieldName' in struct literal of type '${structType.qName}'", node.span)
+            }
+            if (!value.resolvedType.isAssignableTo(fieldType)) {
+                throw TypeMismatchException(fieldType, value.resolvedType, node.span)
+            }
+        }
+        return AstNode.StructLiteral(
+            struct,
+            fields,
+            node.span,
+            TypeData.Basic(structType)
+        )
+    }
+
     private fun checkUnaryOp(node: AstNode.UnaryOp<Unit>): AstNode.UnaryOp<TypeData> {
         val value = checkExpression(node.expr)
-        val resultType = inContext(node) { node.op.checkType(value.extra.type) }
+        val resultType = inContext(node) { node.op.checkType(value.resolvedType) }
         return AstNode.UnaryOp(node.op, value, node.span, TypeData.Basic(resultType))
     }
 
     private fun checkVariable(node: AstNode.Variable<Unit>): AstNode.Variable<TypeData> {
         return AstNode.Variable(node.name, node.span, TypeData.Variable(findVariable(node.name, node.span)))
+    }
+
+    private fun checkFieldAccess(node: AstNode.FieldAccess<Unit>): AstNode.FieldAccess<TypeData> {
+        val receiver = checkExpression(node.receiver)
+        val struct = receiver.resolvedType
+        if (struct !is Type.Struct) {
+            throw AmaltheaException("Cannot access field '${node.fieldName}' on non-struct type '$struct'", node.span)
+        }
+        val fieldType = struct.fields.find { it.first == node.fieldName }?.second
+        if (fieldType == null) {
+            throw AmaltheaException("Struct '${struct.qName}' does not have a field named '${node.fieldName}'", node.span)
+        }
+        return AstNode.FieldAccess(receiver, node.fieldName, node.span, TypeData.Basic(fieldType))
     }
 
     private fun checkType(node: AstNode.Type<Unit>): AstNode.Type<TypeData> {
@@ -191,10 +232,10 @@ class FunctionTypeChecker private constructor(private val signature: Signature, 
     }
 
     class QueryProvider(private val queryEngine: QueryEngine) :
-        Queryable<Key.TypeCheck, AstNode.Function<TypeData>> {
-        override val keyType = Key.TypeCheck::class
+        Queryable<Key.TypeCheckFunction, AstNode.Function<TypeData>> {
+        override val keyType = Key.TypeCheckFunction::class
 
-        override fun query(key: Key.TypeCheck): AstNode.Function<TypeData> {
+        override fun query(key: Key.TypeCheckFunction): AstNode.Function<TypeData> {
             val function = queryEngine[Key.FindFunctionBody(key.signature)]
             if (!checkReturns(function.body)) {
                 throw AmaltheaException("Function ${key.signature} does not return on all paths", function.span)

@@ -1,11 +1,12 @@
-package io.github.seggan.amalthea.backend
+package io.github.seggan.amalthea.backend.function
 
+import io.github.seggan.amalthea.backend.OutputClass
+import io.github.seggan.amalthea.backend.boxConditional
+import io.github.seggan.amalthea.backend.struct.CompiledStruct
 import io.github.seggan.amalthea.frontend.Intrinsics
 import io.github.seggan.amalthea.frontend.QualifiedName
 import io.github.seggan.amalthea.frontend.parsing.AstNode
-import io.github.seggan.amalthea.frontend.typing.Type
-import io.github.seggan.amalthea.frontend.typing.TypeData
-import io.github.seggan.amalthea.frontend.typing.asmType
+import io.github.seggan.amalthea.frontend.typing.*
 import io.github.seggan.amalthea.frontend.typing.function.LocalVariable
 import io.github.seggan.amalthea.frontend.typing.function.Signature
 import io.github.seggan.amalthea.query.Key
@@ -20,13 +21,16 @@ class FunctionCompiler private constructor(
     val mv: DeferredMethodVisitor
 ) {
 
-    private val dependencies = mutableSetOf<CompiledFunction>()
+    private val usedFunctions = mutableSetOf<CompiledFunction>()
+    private val usedStructs = mutableSetOf<CompiledStruct>()
 
     private val variables = mutableMapOf<LocalVariable, Pair<Int, Label>>()
     private var variableIndex = if (signature.name.name == "main") 1 else 0
     private var scope = 0
 
     private fun compile(ast: AstNode.Function<TypeData>) {
+        addTypes(ast)
+
         for (param in (ast.extra as TypeData.Function).parameters) {
             variables[param] = variableIndex++ to Label()
         }
@@ -37,7 +41,7 @@ class FunctionCompiler private constructor(
             val (index, startLabel) = pair
             mv.visitLocalVariable(
                 variable.name,
-                variable.type.asmType.descriptor,
+                variable.type.descriptor,
                 null,
                 startLabel,
                 Label(),
@@ -66,7 +70,7 @@ class FunctionCompiler private constructor(
             val (index, startLabel) = pair
             mv.visitLocalVariable(
                 variable.name,
-                variable.type.asmType.descriptor,
+                variable.type.descriptor,
                 null,
                 startLabel,
                 Label(),
@@ -79,19 +83,22 @@ class FunctionCompiler private constructor(
         scope--
     }
 
-    private fun compileStatement(node: AstNode.Statement<TypeData>) = when (node) {
-        is AstNode.Expression -> compileExpression(node).also {
-            if (!node.extra.type.isJavaVoid) {
-                mv.visitInsn(POP)
+    private fun compileStatement(node: AstNode.Statement<TypeData>) {
+        addTypes(node)
+        when (node) {
+            is AstNode.Expression -> compileExpression(node).also {
+                if (!node.resolvedType.isJavaVoid) {
+                    mv.visitInsn(POP)
+                }
             }
-        }
 
-        is AstNode.Block -> compileBlock(node)
-        is AstNode.Return -> compileReturn(node)
-        is AstNode.VariableAssignment -> compileVariableAssignment(node)
-        is AstNode.VariableDeclaration -> compileVariableDeclaration(node)
-        is AstNode.If -> compileIf(node)
-        is AstNode.While -> compileWhile(node)
+            is AstNode.Block -> compileBlock(node)
+            is AstNode.Return -> compileReturn(node)
+            is AstNode.VariableAssignment -> compileVariableAssignment(node)
+            is AstNode.VariableDeclaration -> compileVariableDeclaration(node)
+            is AstNode.If -> compileIf(node)
+            is AstNode.While -> compileWhile(node)
+        }
     }
 
     private fun compileVariableDeclaration(node: AstNode.VariableDeclaration<TypeData>) {
@@ -100,7 +107,7 @@ class FunctionCompiler private constructor(
         variables[varData.variable] = index to Label()
         if (node.expr != null) {
             compileExpression(node.expr)
-            mv.boxConditional(node.expr.extra.type, varData.type)
+            mv.boxConditional(node.expr.resolvedType, varData.type)
             mv.visitVarInsn(varData.type.asmType.getOpcode(ISTORE), index)
         }
     }
@@ -109,7 +116,7 @@ class FunctionCompiler private constructor(
         val varData = node.extra as TypeData.Variable
         val index = variables[varData.variable]!!.first
         compileExpression(node.expr)
-        mv.boxConditional(node.expr.extra.type, varData.type)
+        mv.boxConditional(node.expr.resolvedType, varData.type)
         mv.visitVarInsn(varData.type.asmType.getOpcode(ISTORE), index)
     }
 
@@ -144,20 +151,25 @@ class FunctionCompiler private constructor(
             mv.visitInsn(RETURN)
         } else {
             compileExpression(node.expr!!)
-            mv.boxConditional(node.expr.extra.type, returnType)
+            mv.boxConditional(node.expr.resolvedType, returnType)
             mv.visitInsn(returnType.asmType.getOpcode(IRETURN))
         }
     }
 
-    fun compileExpression(node: AstNode.Expression<TypeData>) = when (node) {
-        is AstNode.BinaryOp -> compileBinaryOp(node)
-        is AstNode.FloatLiteral -> compileFloatLiteral(node)
-        is AstNode.FunctionCall -> compileFunctionCall(node)
-        is AstNode.IntLiteral -> compileIntLiteral(node)
-        is AstNode.BooleanLiteral -> compileBooleanLiteral(node)
-        is AstNode.StringLiteral -> compileStringLiteral(node)
-        is AstNode.UnaryOp -> compileUnaryOp(node)
-        is AstNode.Variable -> compileVariable(node)
+    fun compileExpression(node: AstNode.Expression<TypeData>) {
+        addTypes(node)
+        when (node) {
+            is AstNode.BinaryOp -> compileBinaryOp(node)
+            is AstNode.FloatLiteral -> compileFloatLiteral(node)
+            is AstNode.FunctionCall -> compileFunctionCall(node)
+            is AstNode.IntLiteral -> compileIntLiteral(node)
+            is AstNode.BooleanLiteral -> compileBooleanLiteral(node)
+            is AstNode.StringLiteral -> compileStringLiteral(node)
+            is AstNode.StructLiteral -> compileStructLiteral(node)
+            is AstNode.UnaryOp -> compileUnaryOp(node)
+            is AstNode.Variable -> compileVariable(node)
+            is AstNode.FieldAccess -> compileFieldAccess(node)
+        }
     }
 
     private fun compileBinaryOp(node: AstNode.BinaryOp<TypeData>) {
@@ -170,7 +182,7 @@ class FunctionCompiler private constructor(
             1.0 -> mv.visitInsn(DCONST_1)
             else -> mv.visitLdcInsn(node.value)
         }
-        if (node.extra.type == Type.Primitive.FLOAT) {
+        if (node.resolvedType == Type.Primitive.FLOAT) {
             mv.visitInsn(D2F)
         }
     }
@@ -185,7 +197,7 @@ class FunctionCompiler private constructor(
 
         for ((argNode, argType) in node.arguments.zip(signature.type.args)) {
             compileExpression(argNode)
-            mv.boxConditional(argNode.extra.type, argType)
+            mv.boxConditional(argNode.resolvedType, argType)
         }
 
         for (intrinsic in Intrinsics.entries) {
@@ -197,11 +209,11 @@ class FunctionCompiler private constructor(
 
         val name = signature.name
         if (signature != this.signature) {
-            dependencies.add(queryEngine[Key.Compile(signature)])
+            usedFunctions.add(queryEngine[Key.CompileFunction(signature)])
         }
         val source = queryEngine[Key.ResolvePackage(name.pkg)]
         val jvmName = QualifiedName(name.pkg, QualifiedName.className(source)).internalName
-        mv.visitMethodInsn(INVOKESTATIC, jvmName, name.name, signature.type.jvmType, false)
+        mv.visitMethodInsn(INVOKESTATIC, jvmName, name.name, signature.type.internalName, false)
     }
 
     private fun compileIntLiteral(node: AstNode.IntLiteral<TypeData>) {
@@ -214,7 +226,7 @@ class FunctionCompiler private constructor(
             else -> mv.visitLdcInsn(node.value)
         }
         if (!isLong) {
-            when (node.extra.type) {
+            when (node.resolvedType) {
                 Type.Primitive.BYTE -> mv.visitInsn(I2B)
                 Type.Primitive.SHORT -> mv.visitInsn(I2S)
                 Type.Primitive.LONG -> mv.visitInsn(I2L)
@@ -227,9 +239,29 @@ class FunctionCompiler private constructor(
         mv.visitLdcInsn(node.value)
     }
 
+    private fun compileStructLiteral(node: AstNode.StructLiteral<TypeData>) {
+        val structType = node.resolvedType as Type.Struct
+        mv.visitTypeInsn(NEW, structType.internalName)
+        mv.visitInsn(DUP)
+
+        for ((name, type) in structType.fields) {
+            val fieldNode = node.fields.find { it.first == name }!!.second
+            compileExpression(fieldNode)
+            mv.boxConditional(fieldNode.resolvedType, type)
+        }
+
+        mv.visitMethodInsn(
+            INVOKESPECIAL,
+            structType.internalName,
+            "<init>",
+            structType.constructorDescriptor,
+            false
+        )
+    }
+
     private fun compileUnaryOp(node: AstNode.UnaryOp<TypeData>) {
         compileExpression(node.expr)
-        node.op.compile(mv, node.expr.extra.type)
+        node.op.compile(mv, node.expr.resolvedType)
     }
 
     private fun compileVariable(node: AstNode.Variable<TypeData>) {
@@ -238,15 +270,62 @@ class FunctionCompiler private constructor(
         mv.visitVarInsn(varData.type.asmType.getOpcode(ILOAD), index)
     }
 
-    class QueryProvider(private val queryEngine: QueryEngine) : Queryable<Key.Compile, CompiledFunction> {
-        override val keyType = Key.Compile::class
+    private fun compileFieldAccess(node: AstNode.FieldAccess<TypeData>) {
+        val receiver = node.receiver
+        compileExpression(receiver)
+        mv.visitFieldInsn(
+            GETFIELD,
+            receiver.resolvedType.internalName,
+            node.fieldName,
+            node.resolvedType.descriptor
+        )
+    }
 
-        override fun query(key: Key.Compile): CompiledFunction {
-            val typedAst = queryEngine[Key.TypeCheck(key.signature)]
+    private fun addTypes(node: AstNode<TypeData>) = when (val typeData = node.extra) {
+        is TypeData.Basic -> addType(typeData.type)
+        is TypeData.Function -> {
+            addType(typeData.type.returnType)
+            for (paramType in typeData.type.args) {
+                addType(paramType)
+            }
+        }
+
+        is TypeData.FunctionCall -> {
+            addType(typeData.signature.type.returnType)
+            for (paramType in typeData.signature.type.args) {
+                addType(paramType)
+            }
+        }
+
+        is TypeData.None -> {}
+        is TypeData.Variable -> addType(typeData.type)
+    }
+
+    private fun addType(type: Type) {
+        if (type is Type.Struct && type !in Type.builtinTypes) {
+            val compiledStruct = queryEngine[Key.CompileStruct(type)]
+            usedStructs.add(compiledStruct)
+        }
+    }
+
+    class QueryProvider(private val queryEngine: QueryEngine) : Queryable<Key.CompileFunction, CompiledFunction> {
+        override val keyType = Key.CompileFunction::class
+
+        override fun query(key: Key.CompileFunction): CompiledFunction {
+            val typedAst = queryEngine[Key.TypeCheckFunction(key.signature)]
             val mv = DeferredMethodVisitor()
             val compiler = FunctionCompiler(key.signature, queryEngine, mv)
             compiler.compile(typedAst)
-            return CompiledFunction(key.signature, mv, compiler.dependencies)
+
+            val pkg = key.signature.name.pkg
+            val source = queryEngine[Key.ResolvePackage(pkg)]
+            return CompiledFunction(
+                key.signature,
+                mv,
+                compiler.usedFunctions,
+                compiler.usedStructs,
+                OutputClass.fromSource(source, pkg)
+            )
         }
     }
 }

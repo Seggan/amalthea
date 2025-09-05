@@ -273,16 +273,26 @@ class Parser private constructor(private val tokens: List<Token>) {
                 Unit
             )
         }
-        return parsePrimary()
+        return parseFieldAccess()
+    }
+
+    private fun parseFieldAccess(): AstNode.Expression<Unit> {
+        val expr = parsePrimary()
+        if (tryConsume(DOT) != null) {
+            val fieldName = parseId()
+            return AstNode.FieldAccess(expr, fieldName.text, expr.span + fieldName.span, Unit)
+        }
+        return expr
     }
 
     private fun parsePrimary(): AstNode.Expression<Unit> = oneOf(
         ::parseNumber,
         ::parseString,
         ::parseBoolean,
+        ::parseStructLiteral,
         ::parseParens,
         ::parseFunctionCall,
-        ::parseVariable
+        ::parseVariable,
     )
 
     private fun parseNumber(): AstNode.Expression<Unit> {
@@ -328,6 +338,18 @@ class Parser private constructor(private val tokens: List<Token>) {
     private fun parseBoolean(): AstNode.Expression<Unit> {
         val token = consume(TRUE, FALSE)
         return AstNode.BooleanLiteral(token.type == TRUE, token.span, Unit)
+    }
+
+    private fun parseStructLiteral(): AstNode.StructLiteral<Unit> {
+        val type = parseType()
+        consume(OPEN_BRACE)
+        val fields = parseArgList(CLOSE_BRACE) {
+            val fieldName = parseId().text
+            consume(COLON)
+            val fieldValue = parseExpression()
+            fieldName to fieldValue
+        }
+        return AstNode.StructLiteral(type, fields, type.span + tokens[index - 1].span, Unit)
     }
 
     private fun parseParens(): AstNode.Expression<Unit> {

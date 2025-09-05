@@ -1,6 +1,10 @@
 package io.github.seggan.amalthea.frontend
 
-import io.github.seggan.amalthea.backend.*
+import io.github.seggan.amalthea.backend.AsmType
+import io.github.seggan.amalthea.backend.asmDescriptor
+import io.github.seggan.amalthea.backend.asmType
+import io.github.seggan.amalthea.backend.asmTypeName
+import io.github.seggan.amalthea.backend.function.DeferredMethodVisitor
 import io.github.seggan.amalthea.frontend.typing.Type
 import io.github.seggan.amalthea.frontend.typing.function.Signature
 import org.objectweb.asm.Opcodes

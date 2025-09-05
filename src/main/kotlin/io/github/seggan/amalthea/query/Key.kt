@@ -1,6 +1,7 @@
 package io.github.seggan.amalthea.query
 
-import io.github.seggan.amalthea.backend.CompiledFunction
+import io.github.seggan.amalthea.backend.function.CompiledFunction
+import io.github.seggan.amalthea.backend.struct.CompiledStruct
 import io.github.seggan.amalthea.frontend.CodeSource
 import io.github.seggan.amalthea.frontend.QualifiedName
 import io.github.seggan.amalthea.frontend.lexing.Token
@@ -34,7 +35,9 @@ sealed interface Key<V> {
 
     data class ResolveFunctionCall(val name: QualifiedName, val args: List<Type>, val context: CodeSource) : Key<Signature>
 
-    data class TypeCheck(val signature: Signature) : Key<AstNode.Function<TypeData>>
+    data class TypeCheckFunction(val signature: Signature) : Key<AstNode.Function<TypeData>>
 
-    data class Compile(val signature: Signature) : Key<CompiledFunction>
+    data class CompileFunction(val signature: Signature) : Key<CompiledFunction>
+
+    data class CompileStruct(val struct: Type.Struct) : Key<CompiledStruct>
 }
